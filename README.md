@@ -4,7 +4,7 @@ At current time he uses the
 [Reddit Comment Data](https://www.reddit.com/r/datasets/comments/3bxlg7/i_have_every_publicly_available_reddit_comment/).
 This Allows for some rather coherent responses. Under the correct Training conditions. 
 
-### Motivation
+### Motivations & Inspirations
 - [Charles the AI](https://twitter.com/charles_the_ai?lang=en)
 -
 - [Sentdex Deep Learning Tutorial](https://pythonprogramming.net/chatbot-deep-learning-python-tensorflow/)
@@ -20,6 +20,9 @@ special thanks to him for lending me his hardware to train and continue to devel
 -
 - [WhoIsAbihag](https://github.com/WhoIsAbishag) For his work with Irene the ChatBot 
   (AI based on OpenAI). He incites, coherent and contextual responses from Chat Bots.
+-
+- [Transformer Model](https://blog.tensorflow.org/2019/05/transformer-chatbot-tutorial-with-tensorflow-2.html) Some designs 
+are re-made or reforged, this was a key inspiration.
   
 ### Build Status
 (TODO)
