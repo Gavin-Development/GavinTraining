@@ -1,6 +1,9 @@
 if __name__ == "__main__":
     import os
     os.environ['TF_GPU_THREAD_MODE'] = "gpu_private"
+    os.environ['REDDIT_DATASET_PATH'] = "D:\\Datasets\\reddit_data\\files"
+    if not os.path.exists('./bunchOfLogs'):
+        os.mkdir('./bunchOfLogs')
     import numpy as np
     from datetime import datetime
     # import tensorflow as tf Not needed since its imported through GavinBackend.models
@@ -15,7 +18,6 @@ if __name__ == "__main__":
     from GavinBackend.callbacks.model_callbacks import PredictCallback
     from tensorflow.keras.utils import plot_model
     from tensorflow.keras.mixed_precision import experimental as mixed_precision
-    # from keras.preprocessing.text import Tokenizer  Different Tokenizer. Only words known to this tokenizer will get encoded
 
     other_policy = 'n'  # input("Do you want to enabled mixed precision? y/n (NOT SUPPORTED YET): ")
     gpus = tf.config.experimental.list_physical_devices('GPU')

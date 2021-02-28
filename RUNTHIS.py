@@ -1,24 +1,25 @@
-import os
-import numpy as np
-from datetime import datetime
-
-os.environ['TF_GPU_THREAD_MODE'] = "gpu_private"
+"""RUN THIS to automatically train Gavin on settings set my Scot-Survivor (Used for people who offered to train for him)"""
 if __name__ == "__main__":
-    # import tensorflow as tf not needed since its imported through GavinBackend.models
+    import os
+    os.environ['TF_GPU_THREAD_MODE'] = "gpu_private"
+    os.environ['REDDIT_DATASET_PATH'] = "./"
+    if not os.path.exists('./bunchOfLogs'):
+        os.mkdir('./bunchOfLogs')
+    import numpy as np
+    from datetime import datetime
+    # import tensorflow as tf Not needed since its imported through GavinBackend.models
     import tensorflow_datasets as tfds
     import GavinBackend.preprocessing.text as gbpte
     import GavinBackend.preprocessing.concurrent as gbpc
     import GavinBackend.preprocessing.tokenise as gbpt
     import GavinBackend.functions as gbf
 
+    from tensorboard.plugins import projector
+    from GavinBackend.models import Transformer, tf, DocumentLevelContextTransformer
+    from GavinBackend.callbacks.model_callbacks import PredictCallback
     from tensorflow.keras.utils import plot_model
     from tensorflow.keras.mixed_precision import experimental as mixed_precision
-    from tensorboard.plugins import projector
-    from GavinBackend.models import Transformer, tf, CometTransformer
-    from GavinBackend.callbacks.model_callbacks import PredictCallback
-    # from keras.preprocessing.text import Tokenizer  Different Tokenizer.
 
-if __name__ == "__main__":
     other_policy = 'n'  # input("Do you want to enabled mixed precision? y/n (NOT SUPPORTED YET): ")
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if other_policy == 'y':
@@ -50,28 +51,31 @@ if __name__ == "__main__":
     path_to_movie_conversations = os.path.join(path_to_dataset, "movie_conversations.txt")
 
     # User Input Data
-    MAX_SAMPLES = 30_000_000
-    name = "NoULog"
+    MODEL_TYPE = 'reg'
+    while MODEL_TYPE.lower() not in ['dlc', 'reg']:
+        MODEL_TYPE = input("Please select either Document Level Context(DLC) or Transformer (Reg): ")
+    MAX_SAMPLES = 187_000_000
+    name = "Release_Rose"
     log_dir = "bunchOfLogs/" + name
     BATCH_SIZE = 32
-    BUFFER_SIZE = 20_000
-    MAX_LENGTH = 50 + 2
+    BUFFER_SIZE = 40_000
+    MAX_LENGTH = 100 + 2
 
     # Hyper-parameters
     NUM_LAYERS = 4
-    D_MODEL = 512
+    D_MODEL = 256
     NUM_HEADS = 64
     UNITS = 4096
     DROPOUT = 0.225
-    EPOCHS = 50
-    load = "y"
+    EPOCHS = 30
+    load = 'y'
     tokenizerPath = None
     if load == "y":
         tokenizerPath = "Tokenizer-2"
     regex = "n"
-    cores = os.cpu_count()
+    cores = os.cpu_count()  # Configured to use entire CPU
     regex_cores = cores
-    TARGET_VOCAB_SIZE = 2 ** 14
+    TARGET_VOCAB_SIZE = 2 ** 15
 
     checkpoint_path = f"{log_dir}/cp.ckpt"
     try:
@@ -87,15 +91,14 @@ if __name__ == "__main__":
         pass
 
     reddit_set_max = MAX_SAMPLES
-    movie_dialog_max = 0
+    movie_dialog_max = 600_000
     while reddit_set_max > MAX_SAMPLES or None:
         reddit_set_max = int(input("Please enter a valid number\n>"))
     if movie_dialog_max > 600000:
-        reddit_set_max = int(input("Please enter a valid number. The movie dialog only has 600k samples: "))
+        movie_dialog_max = int(input("Please enter a valid number. The movie dialog only has 600k samples: "))
 
     print("Loading files...")
-    questions, answers = gbpte.load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_movie_conversations)
-    print(f"Answers: {len(answers)}\nQuestions: {len(questions)}")
+    questions, answers= gbpte.load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_movie_conversations)
     print("Done loading...")
 
     if regex == "y":  # If we're running the regex do this.
@@ -121,64 +124,122 @@ if __name__ == "__main__":
     print(f"Pickling Questions and answers for {name}")
     questionsMarshal = f"{log_dir}/pickles/{name}_questions.marshal"
     answersMarshal = f"{log_dir}/pickles/{name}_answers.marshal"
-    gbpc.save_files(questions, answers, questionsMarshal, answersMarshal)
+    # gbpc.save_files(questions, answers, questionsMarshal, answersMarshal)
     print(f"Done saving....")
     mirrored_strategy = tf.distribute.MirroredStrategy()  # Use mirrored strategy to use multi gpu
     print("Filtering data")
-    questions, answers = gbpt.tokenize_and_filter(questions, answers, cores, MAX_LENGTH, START_TOKEN, END_TOKEN, tokenizer)  # Filter all the data
-    print("Done filtering")
+    if MODEL_TYPE.lower() == "dlc":
+        context = gbpt.tokenize_and_filter_dlc(context=questions+answers, cores=cores, max_len=MAX_LENGTH, s_token=START_TOKEN, e_token=END_TOKEN, tokenizer=tokenizer)
+        questions, answers = gbpt.tokenize_and_filter(questions, answers, cores, MAX_LENGTH, START_TOKEN, END_TOKEN, tokenizer)
+        print(f"Answers: {len(answers)}\nQuestions: {len(questions)}")
+        context = context[0: len(questions)]
+        print("Dont Filtering")
+        sizes = (len(questions), len(answers), len(context))
+        questions_train = questions[0: int(sizes[0] * .80)]
+        questions_val = questions[int(sizes[0] * 0.80):]
+        answers_train = answers[0: int(sizes[1] * .80)]
+        answers_val = answers[int(sizes[1] * .80):]
+        context_train = context[0: int(sizes[2] * .80)]
+        context_val = context[int(sizes[2] * .8):]
 
-    questions_train = questions[int(round(len(questions) * .8, 0)):]
-    answers_train = answers[int(round(len(answers) * 0.8, 0)):]
-    questions_val = questions[:int(round(len(questions) * .2, 0))]
-    answers_val = answers[:int(round(len(answers) * .2, 0))]
-    del questions, answers
+        # decoder inputs use the previous target as input
+        # remove s_token from targets amd context
+        # e_token not added to context.
+        print("Beginning Dataset shuffling, batching and prefetch")
+        dataset_train = tf.data.Dataset.from_tensor_slices((
+            {
+                'inputs': questions_train,  # Source
+                'dec_inputs': answers_train[:, :-1],  # Targets
+                'context_inputs': context_train  # Context
+            },
+            {
+                'outputs': answers_train[:, 1:]  # Outputs
+            }
+        ))
+        dataset_val = tf.data.Dataset.from_tensor_slices((
+            {
+                'inputs': questions_val,  # Source
+                'dec_inputs': answers_val[:, :-1],  # Targets
+                'context': context_val  # Context
+            },
+            {
+                'outputs': answers_val[:, 1:]  # Outputs
+            }
+        ))
+        dataset_train = dataset_train.cache()
+        dataset_train = dataset_train.shuffle(BUFFER_SIZE)
+        dataset_train = dataset_train.batch(BATCH_SIZE)
+        dataset_train = dataset_train.prefetch(tf.data.experimental.AUTOTUNE)
+        options = tf.data.Options()
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+        print("Done Dataset Shuffling, Batching and Prefetch")
 
-    # decoder inputs use the previous target as input
-    # remove s_token from targets
-    print("Beginning Dataset shuffling, batching and prefetch")
-    dataset_train = tf.data.Dataset.from_tensor_slices((
-        {
-            'inputs': questions_train,
-            'dec_inputs': answers_train[:, :-1]
-        },
-        {
-            'outputs': answers_train[:, 1:]
-        }
-    ))
-    dataset_val = tf.data.Dataset.from_tensor_slices((
-        {
-            'inputs': questions_val,
-            'dec_inputs': answers_val[:, :-1]
-        },
-        {
-            'outputs': answers_val[:, 1:]
-        }
-    ))
-    dataset_train = dataset_train.cache()
-    dataset_train = dataset_train.shuffle(BUFFER_SIZE)
-    dataset_train = dataset_train.batch(BATCH_SIZE)
-    dataset_train = dataset_train.prefetch(tf.data.experimental.AUTOTUNE)
-    dataset_val = dataset_val.cache()
-    dataset_val = dataset_val.shuffle(BUFFER_SIZE)
-    dataset_val = dataset_val.batch(BATCH_SIZE)
-    dataset_val = dataset_val.prefetch(tf.data.experimental.AUTOTUNE)
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-    dataset_train.with_options(options)
-    dataset_val.with_options(options)
-    print("Done Dataset shuffling, batching and prefetch")
+        with mirrored_strategy.scope():  # Use the mirrored strategy to create the model
+            transformer = DocumentLevelContextTransformer(
+                vocab_size=VOCAB_SIZE,
+                num_layers=NUM_LAYERS,
+                units=UNITS,
+                d_model=D_MODEL,
+                num_heads=NUM_HEADS,
+                dropout=DROPOUT,
+                mixed=MIXED)
+            model = transformer.return_model()
 
-    with mirrored_strategy.scope():  # Use the mirrored strategy to create the model
-        transformer = Transformer(
-            vocab_size=VOCAB_SIZE,
-            num_layers=NUM_LAYERS,
-            units=UNITS,
-            d_model=D_MODEL,
-            num_heads=NUM_HEADS,
-            dropout=DROPOUT,
-            mixed=MIXED)
-        model = transformer.return_model()
+    else:
+        questions, answers = gbpt.tokenize_and_filter(questions, answers, cores, MAX_LENGTH, START_TOKEN, END_TOKEN, tokenizer)  # Filter all the data
+        sizes = (len(questions), len(answers))
+        print(f"Answers: {sizes[1]}\nQuestions: {sizes[0]}")
+        questions_train = questions[0: int(sizes[0] * .80)]
+        questions_val = questions[int(sizes[0] * 0.80):]
+        answers_train = answers[0: int(sizes[1] * .80)]
+        answers_val = answers[int(sizes[1] * .80):]
+        print("Done filtering")
+
+        # decoder inputs use the previous target as input
+        # remove s_token from targets
+        print("Beginning Dataset Shuffling, Batching and Prefetch.")
+        dataset_train = tf.data.Dataset.from_tensor_slices((
+            {
+                'inputs': questions_train,  # Source
+                'dec_inputs': answers_train[:, :-1]  # Targets
+            },
+            {
+                'outputs': answers_train[:, 1:]  # Outputs
+            }
+        ))
+        dataset_val = tf.data.Dataset.from_tensor_slices((
+            {
+                'inputs': questions_val,  # Source
+                'dec_inputs': answers_val[:, :-1]  # Targets
+            },
+            {
+                'outputs': answers_val[:, 1:]  # Outputs
+            }
+        ))
+        dataset_train = dataset_train.cache()
+        dataset_val = dataset_val.cache()
+        dataset_train = dataset_train.shuffle(BUFFER_SIZE)
+        dataset_val = dataset_val.shuffle(BUFFER_SIZE)
+        dataset_train = dataset_train.batch(BATCH_SIZE)
+        dataset_val = dataset_val.batch(BATCH_SIZE)
+        dataset_train = dataset_train.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset_val = dataset_val.prefetch(tf.data.experimental.AUTOTUNE)
+        options = tf.data.Options()
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+        dataset_train.with_options(options)
+        dataset_val.with_options(options)
+        print("Done Dataset shuffling, batching and prefetch")
+
+        with mirrored_strategy.scope():  # Use the mirrored strategy to create the model
+            transformer = Transformer(
+                vocab_size=VOCAB_SIZE,
+                num_layers=NUM_LAYERS,
+                units=UNITS,
+                d_model=D_MODEL,
+                num_heads=NUM_HEADS,
+                dropout=DROPOUT,
+                mixed=MIXED)
+            model = transformer.return_model()
 
     # noinspection PyAbstractClass,PyShadowingNames
     class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
@@ -256,6 +317,7 @@ if __name__ == "__main__":
 {str(DROPOUT)}
 {str(VOCAB_SIZE)}
 {str(TARGET_VOCAB_SIZE)}
+{str(reddit_set_max - movie_dialog_max - 100_000)}
     """
         f.write(data)
         f.close()
@@ -268,7 +330,7 @@ if __name__ == "__main__":
             f.write(f"Image error: {e}")
             print(f"Image error: {e}")
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="510, 520")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="500, 600")
     predict_callback = PredictCallback(tokenizer=tokenizer, start_token=START_TOKEN, end_token=END_TOKEN, max_length=MAX_LENGTH,
                                        log_dir=log_dir)
     print("Done.")

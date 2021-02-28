@@ -1,4 +1,4 @@
-from tensorflow import tf
+import tensorflow as tf
 
 
 def scaled_dot_product_attention(query, key, value, mask):
@@ -10,7 +10,6 @@ def scaled_dot_product_attention(query, key, value, mask):
     # add the mask zero out padding tokens.
     if mask is not None:
         logits += (mask * -1e9)
-    # print(f"Depth: {depth}\nMask: {mask}\nLogits: {logits}\nQk: {matmul_qk}")
 
     attention_weights = tf.nn.softmax(logits, axis=-1)
     return tf.matmul(attention_weights, value)
