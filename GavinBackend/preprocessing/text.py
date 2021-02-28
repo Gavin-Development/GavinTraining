@@ -1,4 +1,6 @@
 import re
+import os
+REDDIT_PATH = os.getenv('REDDIT_DATASET_PATH')
 
 
 def preprocess_sentence(sentence):
@@ -53,7 +55,7 @@ def load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_mov
                 reddit_set_max -= 1
                 reddit_line += 1
 
-    with open("D:\\Datasets\\reddit_data\\files\\train.from", "r", encoding="utf8", buffering=1000) as file:
+    with open(f"{REDDIT_PATH}\\train.from", "r", encoding="utf8", buffering=1000) as file:
         newline = " newlinechar "
         for line in file:
             if newline in line:
@@ -63,7 +65,7 @@ def load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_mov
                 break
         file.close()
 
-    with open("D:\\Datasets\\reddit_data\\files\\train.to", "r", encoding="utf8", buffering=1000) as file:
+    with open(f"{REDDIT_PATH}\\train.to", "r", encoding="utf8", buffering=1000) as file:
         newline = " newlinechar "
         for line in file:
             if newline in line:
