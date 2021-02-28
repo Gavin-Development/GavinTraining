@@ -214,3 +214,5 @@ fabric.properties
 # User based
 venv
 .idea
+bunchOfLogs
+test.py
