@@ -1,0 +1,18 @@
+
+Date: 28/02/2021 13-33-19,
+     Name: Release_Rose,
+     PATH: bunchOfLogs/Release_Rose/cp.ckpt,
+     LogDir: bunchOfLogs/Release_Rose,
+     Image_Path: bunchOfLogs/Release_Rose/images/combined_Release_Rose.png,
+     EPOCHS: 20
+     MAX_SAMPLES: 5000000,
+     MAX_LENGTH: 102,
+     NUM_LAYERS: 4,
+     D_MODEL: 256,
+     NUM_HEADS: 64,
+     UNITS: 4096,
+     DROPOUT: 0.225,
+     BATCH_SIZE: 32,
+     BUFFER_SIZE: 40000,
+     VOCAB_SIZE: 33065,
+--------------------------------
