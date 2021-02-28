@@ -50,7 +50,18 @@ are re-made or reforged, this was a key inspiration.
 (TODO)
 
 ### Installation
-(TODO)
+If you're running this for Scot-Survivor then please use the [RUNTHIS.py](https://github.com/Scot-Survivor/GavinTraining/blob/master/RUNTHIS.py)
+This is preconfigured with settings that Scot-Survivor needs. 
+- Setup
+  - Download the dataset [files.7z](https://drive.google.com/drive/folders/1GDlTigX4x-H4F7SSqg3QPf3A-byJ9N-v?usp=sharing)
+  - Extract the dataset
+  - Set the environment variable `REDDIT_DATASET_PATH` to location of extraction inside [RUNTHIS.py](https://github.com/Scot-Survivor/GavinTraining/blob/master/RUNTHIS.py) or [main.py](https://github.com/Scot-Survivor/GavinTraining/blob/master/main.py)
+  - If [main.py](https://github.com/Scot-Survivor/GavinTraining/blob/master/main.py)
+    - Follow the on-screen prompts and type in your settings
+    - Wait.
+  - If [RUNTHIS.py](https://github.com/Scot-Survivor/GavinTraining/blob/master/RUNTHIS.py)
+    - The script is already pre-configured you're good to go! 
+    
 
 ### Tests
 (TODO)
