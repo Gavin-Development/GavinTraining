@@ -1,5 +1,7 @@
 import numpy as np
+import nltk
 from GavinBackend.preprocessing.concurrent import chunk
+from GavinBackend.preprocessing.text import preprocess_context
 from functools import partial
 from multiprocessing import Pool
 
@@ -89,3 +91,55 @@ def tokenize_and_filter(inputs, outputs, cores, max_len, s_token, e_token, token
     del lists, data_gen
 
     return inputs_array, outputs_array
+
+
+def context_filtering(m_length, context):
+    stopwords = nltk.corpus.stopwords.words("english")
+    output_data = []
+    data = []
+    for _, sentence in enumerate(context):
+        if len(sentence) <= m_length-2:
+            data.append(preprocess_context(sentence))
+    for sentence in data:
+        output_data.append(" ".join([w for w in sentence.split(' ') if w.lower() not in stopwords and w.isalpha()]))
+    return output_data
+
+
+def tokenize_context(m_length, s_token, e_token, u_tokenizer, data):
+    shape_context = (len(data), m_length)
+
+    context_array = np.zeros(shape=shape_context, dtype=np.float32)
+    context_array[:, 0] = s_token[0]
+
+    for _, sentence in enumerate(data):
+
+        tokenized_sentence = u_tokenizer.encode(sentence)
+
+        if len(tokenized_sentence) <= m_length - 2:
+            context_array[_, 1:len(tokenized_sentence) + 1] = tokenized_sentence
+    return context_array
+
+
+def tokenize_and_filter_dlc(context, cores, max_len, s_token, e_token, tokenizer):
+    data_gen_context = chunk(context, cores)
+    partial_iter = partial(context_filtering, max_len)
+    process_pool = Pool(processes=cores)
+    lists = [next(data_gen_context) for _ in range(cores)]
+    _process_outputs = process_pool.map(partial_iter, lists)
+    process_pool.close()
+
+    context = _process_outputs[0]
+    for i in range(cores - 2):
+        context.extend(_process_outputs[i + 1])
+
+    data_gen_context_2 = chunk(context, cores)
+    partial_iter = partial(tokenize_context, max_len, s_token, e_token, tokenizer)
+    process_pool = Pool(processes=cores)
+    lists = [next(data_gen_context_2) for _ in range(cores)]
+    _process_outputs = process_pool.map(partial_iter, lists)
+    process_pool.close()
+
+    context_array = _process_outputs[0]
+    for i in range(cores - 2):
+        context_array = np.append(context_array, _process_outputs[i + 1], axis=0)
+    return context_array
