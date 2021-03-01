@@ -27,12 +27,6 @@ are re-made or reforged, this was a key inspiration.
 ### Build Status
 (TODO)
 
-### Code Style
-(TODO)
-
-### Screenshots
-(TODO)
-
 ### Framework & Technologies
 1. Built with:
    - [TensorFlow](https://github.com/tensorflow/tensorflow)
