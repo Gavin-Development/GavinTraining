@@ -64,13 +64,23 @@ This is preconfigured with settings that Scot-Survivor needs.
     
 
 ### Tests
-(TODO)
+- ![Input: you're dumb Output: * laughs * I don ' t get it .](https://github.com/Scot-Survivor/GavinTraining/blob/master/funny-responses/image1.PNG?raw=true)
+- ![Input: hi Output: * kisses back * Input: kiss Output: * laughs * I love you too .](https://github.com/Scot-Survivor/GavinTraining/blob/master/funny-responses/image2.png?raw=true)
+- ![Input: what is the point of life? Output: I think it was a joke .](https://github.com/Scot-Survivor/GavinTraining/blob/master/funny-responses/image3.png?raw=true)
+- ![Input: get smart Output: I don ' t think so .](https://github.com/Scot-Survivor/GavinTraining/blob/master/funny-responses/image4.png?raw=true)
+
 
 ### Contribute
 (TODO)
 
 ### Credits
-(TODO)
+- "REFORMER: THE EFFICIENT TRANSFORMER": https://arxiv.org/pdf/2001.04451.pdf
+- "Practical and Optimal LSH for Angular Distance": https://arxiv.org/pdf/1509.02897.pdf
+- "When and Why is Document-level Context Useful in Neural Machine Translation?": https://arxiv.org/pdf/1910.00294.pdf
+- "Attention Is All You Need": https://arxiv.org/pdf/1706.03762.pdf
+- "Improved Transformer Architecture for Sequence to Sequence Translation": https://www.cs.princeton.edu/sites/default/files/austin_wang_spring_2019.pdf- "Combining Local and Document-Level Context: The LMU Munich Neural Machine Translation System at WMT19": https://www.aclweb.org/anthology/W19-5345.pdf
+- "Improving the Transformer Translation Model with Document-Level Context": https://arxiv.org/pdf/1810.03581.pdf
+- "Illustrating The Reformer": https://towardsdatascience.com/illustrating-the-reformer-393575ac6ba0
 
 ### Licence
 (TODO)
