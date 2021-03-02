@@ -76,7 +76,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         ...
         Attributes:
             :arg d_model: int
-                The units for attention dense layers
+                Embeddings Size.
             :arg num_heads: int
                 The number of heads the layer should have
             :arg name: str
