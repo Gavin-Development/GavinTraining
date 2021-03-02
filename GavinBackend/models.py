@@ -240,7 +240,7 @@ class DocumentLevelContextTransformer(Transformer):
 
         outputs = tf.keras.layers.Dense(units=vocab_size, name="outputs")(dec_outputs)
 
-        self.model = tf.keras.Model(inputs=[inputs, dec_inputs], outputs=outputs, name=name)
+        self.model = tf.keras.Model(inputs=[inputs, dec_inputs, context_inputs], outputs=outputs, name=name)
 
     def context(self, name='context'):
         context_inputs = tf.keras.Input(shape=(None,), name="context_inputs")
@@ -261,7 +261,7 @@ class DocumentLevelContextTransformer(Transformer):
         return tf.keras.Model(inputs=[context_inputs, context_padding_mask], outputs=outputs, name=name)
 
     def context_layer(self, name="context_layer"):
-        context_inputs = tf.keras.Input(shape=(None,), name="context_inputs")
+        context_inputs = tf.keras.Input(shape=(None, self.d_model), name="context_inputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name='context_padding_mask')
 
         attention = MultiHeadAttention(d_model=self.d_model, num_heads=self.num_heads, name="ContextAttention")(
@@ -291,7 +291,7 @@ class DocumentLevelContextTransformer(Transformer):
         """
         inputs = tf.keras.Input(shape=(None,), name="inputs")
         padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
-        context_outputs = tf.keras.Input(shape=(None,), name="context_outputs")
+        context_outputs = tf.keras.Input(shape=(None, self.d_model), name="context_outputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name="context_padding_mask")
 
         embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
@@ -316,7 +316,7 @@ class DocumentLevelContextTransformer(Transformer):
         """
         inputs = tf.keras.Input(shape=(None, self.d_model), name="inputs")
         padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
-        context_outputs = tf.keras.Input(shape=(None,), name="context_outputs")
+        context_outputs = tf.keras.Input(shape=(None, self.d_model), name="context_outputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name="context_padding_mask")
 
         EncoderAttention = MultiHeadAttention(
@@ -358,7 +358,7 @@ class DocumentLevelContextTransformer(Transformer):
         look_ahead_mask = tf.keras.Input(
             shape=(1, None, None), name="look_ahead_mask")
         padding_mask = tf.keras.Input(shape=(1, 1, None), name='padding_mask')
-        context_outputs = tf.keras.Input(shape=(None,), name="context_outputs")
+        context_outputs = tf.keras.Input(shape=(None, self.d_model), name="context_outputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name="context_padding_mask")
 
         attention1 = MultiHeadAttention(
@@ -371,12 +371,12 @@ class DocumentLevelContextTransformer(Transformer):
 
         attention2 = MultiHeadAttention(
             self.d_model, self.num_heads, name="ContextAttention"
-        )({{'query': attention1,
+        )({'query': attention1,
             'key': context_outputs,
             'value': context_outputs,
-            'mask': context_padding_mask}})
+            'mask': context_padding_mask})
 
-        attention2 = tf.keras.layers.LayerNormalization(attention2 + attention1)
+        attention2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attention2 + attention1)
 
         attention3 = MultiHeadAttention(
             self.d_model, self.num_heads, name="EncoderAttention")(inputs={'query': attention2,
@@ -388,7 +388,7 @@ class DocumentLevelContextTransformer(Transformer):
             epsilon=1e-6)(attention3 + attention2)
 
         attention3 = tf.keras.layers.Dropout(rate=self.dropout)(attention3)
-        attention3 = tf.keras.layers.LayerNormalization(attention3 + attention2)
+        attention3 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(attention3 + attention2)
 
         outputs = tf.keras.layers.Dense(units=self.units, activation='relu')(attention3)
         outputs = tf.keras.layers.Dense(units=self.d_model)(outputs)
@@ -412,7 +412,7 @@ class DocumentLevelContextTransformer(Transformer):
         look_ahead_mask = tf.keras.Input(
             shape=(1, None, None), name='look_ahead_mask')
         padding_mask = tf.keras.Input(shape=(1, 1, None), name='padding_mask')
-        context_outputs = tf.keras.Input(shape=(None,), name="context_outputs")
+        context_outputs = tf.keras.Input(shape=(None, self.d_model), name="context_outputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name="context_padding_mask")
 
         embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
