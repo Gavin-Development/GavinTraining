@@ -43,17 +43,6 @@ def load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_mov
                 inputs.append(preprocess_sentence(id2line[conversation[i + 1]]))
                 if len(inputs) >= movie_dialog_max:
                     break
-    if reddit_set_max + movie_dialog_max >= 1_000_000:
-        with open("D:\\Datasets\\Humour\\humourQ.txt", "r") as f:
-            for line in f:
-                inputs.append(preprocess_sentence(line))
-                reddit_set_max -= 1
-                reddit_line += 1
-        with open(f"D:\\Datasets\\Humour\\humourA.txt", "r") as f:
-            for line in f:
-                outputs.append(preprocess_sentence(line.capitalize()))
-                reddit_set_max -= 1
-                reddit_line += 1
 
     with open(f"{REDDIT_PATH}\\train.from", "r", encoding="utf8", buffering=1000) as file:
         newline = " newlinechar "
