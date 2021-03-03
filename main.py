@@ -1,7 +1,7 @@
 if __name__ == "__main__":
     import os
     os.environ['TF_GPU_THREAD_MODE'] = "gpu_private"
-    os.environ['REDDIT_DATASET_PATH'] = "D:\\Datasets\\reddit_data\\files"
+    os.environ['REDDIT_DATASET_PATH'] = "D:\\Datasets\\reddit_data\\files\\"
     import numpy as np
     from datetime import datetime
     # import tensorflow as tf Not needed since its imported through GavinBackend.models

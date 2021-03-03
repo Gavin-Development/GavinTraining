@@ -44,7 +44,7 @@ def load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_mov
                 if len(inputs) >= movie_dialog_max:
                     break
 
-    with open(f"{REDDIT_PATH}\\train.from", "r", encoding="utf8", buffering=1000) as file:
+    with open(f"{REDDIT_PATH}train.from", "r", encoding="utf8", buffering=1000) as file:
         newline = " newlinechar "
         for line in file:
             if newline in line:
@@ -54,7 +54,7 @@ def load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_mov
                 break
         file.close()
 
-    with open(f"{REDDIT_PATH}\\train.to", "r", encoding="utf8", buffering=1000) as file:
+    with open(f"{REDDIT_PATH}train.to", "r", encoding="utf8", buffering=1000) as file:
         newline = " newlinechar "
         for line in file:
             if newline in line:
