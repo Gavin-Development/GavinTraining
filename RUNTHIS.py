@@ -59,7 +59,7 @@ if __name__ == "__main__":
     log_dir = "bunchOfLogs/" + name
     BATCH_SIZE = 32
     BUFFER_SIZE = 40_000
-    MAX_LENGTH = 100 + 2
+    MAX_LENGTH = 50 + 2
 
     # Hyper-parameters
     NUM_LAYERS = 4

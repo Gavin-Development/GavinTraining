@@ -56,7 +56,7 @@ if __name__ == "__main__":
     log_dir = "bunchOfLogs/" + name
     BATCH_SIZE = int(input("BATCH_SIZE(32): "))
     BUFFER_SIZE = 40_000
-    MAX_LENGTH = 100 + 2
+    MAX_LENGTH = 50 + 2
 
     # Hyper-parameters
     NUM_LAYERS = int(input("Please enter the number of NUM_LAYERS(4): "))
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         movie_dialog_max = int(input("Please enter a valid number. The movie dialog only has 600k samples: "))
 
     print("Loading files...")
-    questions, answers= gbpte.load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_movie_conversations)
+    questions, answers = gbpte.load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_movie_conversations)
     print("Done loading...")
 
     if regex == "y":  # If we're running the regex do this.
