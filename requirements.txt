@@ -1,6 +1,6 @@
 tensorboard==2.4.1
 tensorboard-plugin-profile==2.4.0
-tensorflow==2.3.0
+tensorflow==2.4.0
 numpy==1.18.5
 pydot==1.4.2
 nltk==3.5
