@@ -1,6 +1,5 @@
 import re
-import os
-REDDIT_PATH = os.getenv('REDDIT_DATASET_PATH')
+from concurrent.futures import ProcessPoolExecutor
 
 
 def preprocess_sentence(sentence):
@@ -20,49 +19,22 @@ def preprocess_context(sentence):
     return sentence
 
 
+def read_thread(path, reddit_set_max):
+    lines = []
+    with open(path, "r", encoding='utf-8') as f:
+        for i in range(reddit_set_max//2):
+            line = next(f)
+            # line = preprocess_sentence(line)
+            lines.append(line)
+    return lines
+
+
 # noinspection PyShadowingNames,PyPep8Naming
-def load_data(reddit_set_max, movie_dialog_max, path_to_movie_lines, path_to_movie_conversations):
-    id2line = {}
-    inputs, outputs = [], []
-    reddit_line = 0
-    if movie_dialog_max > 0:
-        with open(path_to_movie_lines, errors="ignore") as file:
-            lines = file.readlines()
-        for line in lines:
-            parts = line.replace('\n', '').split(' +++$+++ ')
-            id2line[parts[0]] = parts[4]
-
-        with open(path_to_movie_conversations, 'r') as file:
-            lines2 = file.readlines()
-        for line2 in lines2:
-            parts = line2.replace('\n', '').split(" +++$+++ ")
-            # get the conversation in a list of line ID
-            conversation = [line2[1:-1] for line2 in parts[3][1:-1].split(', ')]
-            for i in range(len(conversation) - 1):
-                outputs.append(preprocess_sentence(id2line[conversation[i]]))
-                inputs.append(preprocess_sentence(id2line[conversation[i + 1]]))
-                if len(inputs) >= movie_dialog_max:
-                    break
-
-    with open(f"{REDDIT_PATH}train.from", "r", encoding="utf8", buffering=1000) as file:
-        newline = " newlinechar "
-        for line in file:
-            if newline in line:
-                line = line.replace(newline, "\n")
-            inputs.append(line)
-            if len(inputs) >= reddit_set_max / 2:
-                break
-        file.close()
-
-    with open(f"{REDDIT_PATH}train.to", "r", encoding="utf8", buffering=1000) as file:
-        newline = " newlinechar "
-        for line in file:
-            if newline in line:
-                line = line.replace(newline, "\n")
-            outputs.append(line)
-            if len(outputs) >= reddit_set_max / 2:
-                file.close()
-                return inputs, outputs
-        file.close()
-    return inputs, outputs
+def load_data(reddit_set_max, path):
+    train_from = open(f"{path}train.from", "r", encoding="utf-8")
+    train_to = open(f"{path}train.to", "r", encoding="utf-8")
+    with ProcessPoolExecutor(2) as executor:
+        inputs_fn = executor.submit(read_thread, f"{path}train.from", reddit_set_max)
+        outputs_fn = executor.submit(read_thread, f"{path}train.to", reddit_set_max)
+    return inputs_fn.result(), outputs_fn.result()
 
