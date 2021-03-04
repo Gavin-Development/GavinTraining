@@ -8,7 +8,6 @@ if __name__ == "__main__":
     # import tensorflow as tf Not needed since its imported through GavinBackend.models
     import tensorflow_datasets as tfds
     import GavinBackend.preprocessing.text as gbpte
-    import GavinBackend.preprocessing.concurrent as gbpc
     import GavinBackend.preprocessing.tokenise as gbpt
     import GavinBackend.functions as gbf
 
@@ -85,7 +84,7 @@ if __name__ == "__main__":
         pass
 
     print("Loading files...")
-    questions, answers = gbpte.load_data(MAX_SAMPLES, MAX_LENGTH, DATASET_PATH)
+    questions, answers = gbpte.load_data(MAX_SAMPLES, DATASET_PATH)
     print("Done loading...")
 
     if load == "n":  # If we're not loading the tokenizer then generate this
