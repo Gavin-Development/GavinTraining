@@ -31,8 +31,6 @@ def read_thread(path, reddit_set_max):
 
 # noinspection PyShadowingNames,PyPep8Naming
 def load_data(reddit_set_max, path):
-    train_from = open(f"{path}train.from", "r", encoding="utf-8")
-    train_to = open(f"{path}train.to", "r", encoding="utf-8")
     with ProcessPoolExecutor(2) as executor:
         inputs_fn = executor.submit(read_thread, f"{path}train.from", reddit_set_max)
         outputs_fn = executor.submit(read_thread, f"{path}train.to", reddit_set_max)
