@@ -23,7 +23,10 @@ def read_thread(path, reddit_set_max):
     lines = []
     with open(path, "r", encoding='utf-8') as f:
         for i in range(reddit_set_max//2):
+            newline = " newlinechar "
             line = next(f)
+            if newline in line:
+                line = line.replace(newline, "\n")
             # line = preprocess_sentence(line)
             lines.append(line)
     return lines

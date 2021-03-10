@@ -8,12 +8,11 @@ if __name__ == "__main__":
     # import tensorflow as tf Not needed since its imported through GavinBackend.models
     import tensorflow_datasets as tfds
     import GavinBackend.preprocessing.text as gbpte
-    import GavinBackend.preprocessing.concurrent as gbpc
     import GavinBackend.preprocessing.tokenise as gbpt
     import GavinBackend.functions as gbf
 
     from tensorboard.plugins import projector
-    from GavinBackend.models import Transformer, tf, DocumentLevelContextTransformer
+    from GavinBackend.models import Transformer, tf
     from GavinBackend.callbacks.model_callbacks import PredictCallback
     from tensorflow.keras.utils import plot_model
     from tensorflow.keras.mixed_precision import experimental as mixed_precision
