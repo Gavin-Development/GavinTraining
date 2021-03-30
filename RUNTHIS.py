@@ -192,7 +192,7 @@ if __name__ == "__main__":
         tokenizerPath = None
         if load == "y":
             tokenizerPath = "Tokenizer-2"
-        cores = 4
+        cores = os.cpu_count()
         regex_cores = cores
         TARGET_VOCAB_SIZE = 2 ** 14
 

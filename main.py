@@ -1,5 +1,6 @@
 if __name__ == "__main__":
     import os
+    import time
 
     os.environ['TF_GPU_THREAD_MODE'] = "gpu_private"
     os.environ['REDDIT_DATASET_PATH'] = "D:\\Datasets\\reddit_data\\files\\"
@@ -143,16 +144,16 @@ if __name__ == "__main__":
         config.gpu_options.allow_growth = True
         session = tf.compat.v1.Session(config=config)
 
-    print(f"TensorFlow Version: {tf.__version__}")
-    print(f"Numpy Version: {np.__version__}")
-    print(f"Eager execution: {tf.executing_eagerly()}")
-
     path_to_dataset = "cornell movie-dialogs corpus"
 
     path_to_movie_lines = os.path.join(path_to_dataset, "movie_lines.txt")
     path_to_movie_conversations = os.path.join(path_to_dataset, "movie_conversations.txt")
 
     mirrored_strategy = tf.distribute.MirroredStrategy()  # Use mirrored strategy to use multi gpu
+    time.sleep(.5)  # Gives time for GPU to init to stop Tensorflow print over prompt.
+    print(f"TensorFlow Version: {tf.__version__}")
+    print(f"Numpy Version: {np.__version__}")
+    print(f"Eager execution: {tf.executing_eagerly()}")
 
     # User Input Data
     name = input("Please enter a ModelName for this train: ")
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     checkpoint_path = f"{log_dir}/cp.ckpt"
     loaded = False
     if os.path.exists(f"{log_dir}"):
-        check = input(f"Would you like to continue where you left off for model: {name} [y, yes]: ")
+        check = input(f"Would you like to continue where you left off for model: {name} y/n: ")
         if check.lower() in ['y', 'yes']:
             model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH = checkpointing(log_dir)
             if not model:
@@ -171,6 +172,7 @@ if __name__ == "__main__":
                 EPOCHS = int(input("How many epochs would you like to continue for: "))
         else:
             print("Quitting. Please use a different name per model.")
+            quit()
 
     else:
         MAX_SAMPLES = int(input("MAX_SAMPLES: "))
