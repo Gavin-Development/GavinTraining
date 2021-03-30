@@ -64,8 +64,8 @@ def load_conversations(max_len):
 
 if __name__ == "__main__":
     MAX_LENGTH = 40 + 2
-    TARGET_VOCAB_SIZE = 65536  # 16384 int(input("Please enter the vocab size: "))
-    save_path = "Tokenizer-3"  # input("Please enter your save path: ")
+    TARGET_VOCAB_SIZE = 2**20  # 1048576
+    save_path = "Tokenizer-1Million"
     movie_dialog_max = 0
 
     gen = load_conversations(MAX_LENGTH)
