@@ -4,3 +4,5 @@ tensorflow==2.4.1
 numpy==1.19.5
 pydot==1.4.2
 nltk==3.5
+tqdm>=4.58.0
+zstandard>=0.15.2

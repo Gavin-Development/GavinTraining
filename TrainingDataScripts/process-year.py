@@ -8,7 +8,7 @@ files = [year + "-%.2d" % i for i in range(1, 13)]
 
 
 def run(filename):
-    os.system(f"categorise.py {filename}")
+    os.system(f"categoriseZSTD.py {filename}")
     print(f"{filename} Finished")
 
 
