@@ -20,8 +20,8 @@ if __name__ == "__main__":
 
     def load_dataset(q_s, a_s, u_cores, max_length, start_token, end_token, t, buffer_size, batch_size):
         print("Filtering data")
-        q_s, a_s = gbpt.tokenize_and_filter(q_s, a_s, u_cores, max_length, start_token, end_token,
-                                            t)  # Filter all the data
+        q_s, a_s = gbpt.tokenize_dataset(q_s, a_s, u_cores, max_length, start_token, end_token,
+                                         t)  # Filter all the data
         sizes = (len(q_s), len(a_s))
         print(f"Answers: {sizes[1]}\nQuestions: {sizes[0]}")
         questions_train = q_s[0: int(sizes[0] * .80)]
@@ -236,16 +236,15 @@ if __name__ == "__main__":
         # gbpc.save_files(questions, answers, questionsMarshal, answersMarshal)
         print(f"Done saving....")
 
-        with mirrored_strategy.scope():  # Use the mirrored strategy to create the model
-            transformer = Transformer(
-                vocab_size=VOCAB_SIZE,
-                num_layers=NUM_LAYERS,
-                units=UNITS,
-                d_model=D_MODEL,
-                num_heads=NUM_HEADS,
-                dropout=DROPOUT,
-                mixed=MIXED)
-            model = transformer.return_model()
+        transformer = Transformer(
+            vocab_size=VOCAB_SIZE,
+            num_layers=NUM_LAYERS,
+            units=UNITS,
+            d_model=D_MODEL,
+            num_heads=NUM_HEADS,
+            dropout=DROPOUT,
+            mixed=MIXED)
+        model = transformer.return_model()
 
         dataset_train, dataset_val = load_dataset(questions, answers, cores, MAX_LENGTH, START_TOKEN, END_TOKEN, tokenizer, BUFFER_SIZE, BATCH_SIZE)
 
