@@ -22,20 +22,21 @@ def tokenize(s_token, e_token, u_tokenizer, train_data, thread_id):
     return outputs
 
 
-def tokenize_and_filter(inputs, outputs, cores, max_len, s_token, e_token, tokenizer):
-    # Do the same but tokenizer everything instead of check length
+def tokenize_dataset(inputs, outputs, cores, max_len, s_token, e_token, tokenizer):
     training_data = list(zip(inputs, outputs))
     del inputs, outputs
     data_gen = chunk(training_data, cores)
 
     lists = [next(data_gen) for _ in range(cores)]
     futures = []
+
     with ProcessPoolExecutor(cores) as executor:
         for i in range(cores):
             futures.append(executor.submit(tokenize, s_token, e_token, tokenizer, lists[i], f"Thread_{i}"))
         wait(futures)
         executor.shutdown()
     del lists, data_gen, training_data
+
     inputs = []
     outputs = []
     for future in futures:
@@ -43,10 +44,11 @@ def tokenize_and_filter(inputs, outputs, cores, max_len, s_token, e_token, token
         inputs.extend(data['inputs'])
         outputs.extend(data['outputs'])
     del futures
+
     print("Beginning Padding.")
     with ThreadPoolExecutor() as executor:
-        fut1 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, inputs, maxlen=max_len, padding='post')
-        fut2 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, outputs, maxlen=max_len, padding='post')
+        fut1 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, inputs, maxlen=max_len, padding='post', dtype=tf.float16)
+        fut2 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, outputs, maxlen=max_len, padding='post', dtype=tf.float16)
         wait((fut1, fut2))
 
     return fut1.result(), fut2.result()
