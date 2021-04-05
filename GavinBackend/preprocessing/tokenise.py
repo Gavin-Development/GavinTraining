@@ -47,8 +47,8 @@ def tokenize_dataset(inputs, outputs, cores, max_len, s_token, e_token, tokenize
 
     print("Beginning Padding.")
     with ThreadPoolExecutor() as executor:
-        fut1 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, inputs, maxlen=max_len, padding='post', dtype=tf.float16)
-        fut2 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, outputs, maxlen=max_len, padding='post', dtype=tf.float16)
+        fut1 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, inputs, maxlen=max_len, padding='post')
+        fut2 = executor.submit(tf.keras.preprocessing.sequence.pad_sequences, outputs, maxlen=max_len, padding='post')
         wait((fut1, fut2))
 
     return fut1.result(), fut2.result()
