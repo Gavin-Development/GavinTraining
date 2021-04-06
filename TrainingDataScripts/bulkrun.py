@@ -9,7 +9,7 @@ import sqlite3
 timeframes = glob.glob("D:/Datasets/reddit_data/databases/*.db")
 timeframes = [os.path.basename(timeframe) for timeframe in timeframes]
 total_rows = 0
-sql = """DELETE FROM parent_reply WHERE comment LIKE "%dogetipbot%" or comment LIKE "%shiny iv%" or comment like "%retard%" or main.parent_reply.comment LIKE "%nigga%";"""
+sql = """DROP TABLE tokenized_comment_data;"""
 for timeframe in timeframes:
     connection = sqlite3.connect('D:/Datasets/reddit_data/databases/{}'.format(timeframe))
     cursor = connection.cursor()
@@ -18,4 +18,4 @@ for timeframe in timeframes:
     connection.commit()
     print(f"{timeframe} SQL completed successfully")
 
-print(f"Total Row counts: {total_rows}")
+print(f"Total Row counts: {abs(total_rows)}")

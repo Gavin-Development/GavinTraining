@@ -2,6 +2,8 @@ import os
 import re
 import tensorflow_datasets as tfds
 
+from spacy.tokenizer import Tokenizer
+
 path_to_dataset = "cornell movie-dialogs corpus"
 
 path_to_movie_lines = os.path.join(path_to_dataset, "movie_lines.txt")
