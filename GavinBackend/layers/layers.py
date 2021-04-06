@@ -15,16 +15,6 @@ def scaled_dot_product_attention(query, key, value, mask):
     return tf.matmul(attention_weights, value)
 
 
-def locality_sensitive_hashing_attention(query, key, value, mask):
-    matmul_qk = tf.matmul(query, key, transpose_b=True)
-
-    depth = tf.cast(tf.shape(key)[-1], tf.float32)
-
-    if mask is not None:
-        logits = matmul_qk - mask
-    tf.add()
-
-
 # noinspection PyMethodOverriding,PyMethodMayBeStatic
 class PositionalEncoding(tf.keras.layers.Layer):
     """Positional Encoding
