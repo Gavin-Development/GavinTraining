@@ -21,8 +21,8 @@ if __name__ == "__main__":
 
     def load_dataset(q_s, a_s, u_cores, max_length, start_token, end_token, t, buffer_size, batch_size):
         print("Filtering data")
-        q_s, a_s = gbpt.tokenize_and_filter(q_s, a_s, u_cores, max_length, start_token, end_token,
-                                            t)  # Filter all the data
+        q_s, a_s = gbpt.tokenize_dataset(q_s, a_s, u_cores, max_length, start_token, end_token,
+                                         t)  # Filter all the data
         sizes = (len(q_s), len(a_s))
         print(f"Answers: {sizes[1]}\nQuestions: {sizes[0]}")
         questions_train = q_s[0: int(sizes[0] * .80)]
@@ -68,13 +68,12 @@ if __name__ == "__main__":
 
     def checkpointing(model_dir):
         if os.path.exists(f'{model_dir}/checkpoint'):
-            with open(f"{model_dir}/values/hparams.txt", "r", encoding="utf8") as f:
-                lines = f.readlines()
+            with open(f"{model_dir}/values/hparams.txt", "r", encoding="utf8") as file:
+                lines = file.readlines()
                 formatted = []
                 for line in lines:
                     formatted.append(line.replace("\n", ""))
                 max_samples = int(formatted[0])
-                ModelName = formatted[1]
                 max_length = int(formatted[2])
                 batch_size = int(formatted[3])
                 buffer_size = int(formatted[4])
@@ -97,7 +96,7 @@ if __name__ == "__main__":
                     DROPOUT: {dropout}
                     VOCAB_SIZE: {vocab_size}
                     """)
-                f.close()
+                file.close()
                 u_cores = int(input("How many cores would you like to use for pre-processing: "))
                 loaded_tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(
                     f"{model_dir}/tokenizer/vocabTokenizer")
@@ -177,7 +176,7 @@ if __name__ == "__main__":
     else:
         MAX_SAMPLES = int(input("MAX_SAMPLES: "))
         BATCH_SIZE = int(input("BATCH_SIZE(32): "))
-        BUFFER_SIZE = 40_000
+        BUFFER_SIZE = 20_000
         MAX_LENGTH = 50 + 2
 
         # Hyper-parameters
