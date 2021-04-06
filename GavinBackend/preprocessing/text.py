@@ -38,4 +38,3 @@ def load_data(reddit_set_max, path):
         inputs_fn = executor.submit(read_thread, f"{path}train.from", reddit_set_max)
         outputs_fn = executor.submit(read_thread, f"{path}train.to", reddit_set_max)
     return inputs_fn.result(), outputs_fn.result()
-
