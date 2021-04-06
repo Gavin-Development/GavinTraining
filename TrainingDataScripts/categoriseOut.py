@@ -55,8 +55,8 @@ def sort_out(time_frame):
         except FileExistsError:
             pass
         shutil.copy('D:/Datasets/reddit_data/databases/{}'.format(t_frame), './temp/{}'.format(t_frame))
+        limit = 3_000_000
         connection = sqlite3.connect('./temp/{}'.format(t_frame))
-        limit = 1_000_000
         last_unix = 0
         cur_length = limit
         inputs = []
@@ -77,13 +77,13 @@ def sort_out(time_frame):
                 last_unix = df.tail(1)['unix'].values[0]
                 cur_length = len(df)
                 for content in df['parent'].values:
-                    inputs.append(preprocess_sentence(str(content)))
+                    inputs.append(str(content))
 
                 for content in df['comment'].values:
-                    outputs.append(preprocess_sentence(str(content)))
+                    outputs.append(str(content))
 
-                generator_i = chunk(df['parent'].values, cores)
-                generator_o = chunk(df['comment'].values, cores)
+                generator_i = chunk(inputs, cores)
+                generator_o = chunk(outputs, cores)
                 lists_i = [next(generator_i) for _ in range(cores)]
                 lists_o = [next(generator_o) for _ in range(cores)]
                 p = Pool(cores)
@@ -122,8 +122,8 @@ def sort_out(time_frame):
 if __name__ == "__main__":
     try:
         shutil.rmtree('./temp/')
-        os.remove("D:\\Datasets\\reddit_data\\files\\train.*")
-    except FileNotFoundError:
+        os.remove("D:\Datasets\\reddit_data\\files\\train.*")
+    except FileNotFoundError or OSError:
         pass
     sort_out(timeframes)
     shutil.rmtree('./temp/')
