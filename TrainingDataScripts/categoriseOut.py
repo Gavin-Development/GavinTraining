@@ -122,7 +122,7 @@ def sort_out(time_frame):
 if __name__ == "__main__":
     try:
         shutil.rmtree('./temp/')
-        os.remove("D:\Datasets\\reddit_data\\files\\train.*")
+        os.remove("D:/Datasets/reddit_data/files/train.*")
     except FileNotFoundError or OSError:
         pass
     sort_out(timeframes)
