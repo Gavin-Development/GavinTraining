@@ -83,6 +83,7 @@ if __name__ == "__main__":
                 units = int(formatted[8])
                 dropout = float(formatted[9])
                 vocab_size = int(formatted[10])
+                start_epoch = int(formatted[11])
                 print(f"""
                     Imported Hyper Parameters from {model_dir}/values/hparams.txt
                     MAX_SAMPLES: {max_samples}
@@ -116,12 +117,12 @@ if __name__ == "__main__":
                     loaded_model = base.return_model()
                     loaded_model.load_weights(f"{model_dir}/cp.ckpt").expect_partial()
                 dataset_t, dataset_v = load_dataset(q_s, a_s, u_cores, max_length, start_token, end_token, loaded_tokenizer, buffer_size, batch_size)
-                return loaded_model, dataset_t, dataset_v, d_model, loaded_tokenizer, start_token, end_token, vocab_size, max_length
+                return loaded_model, dataset_t, dataset_v, d_model, loaded_tokenizer, start_token, end_token, vocab_size, max_length, start_epoch
         else:
             print("No check point data found.")
             return False, False, False, False, False, False, False
 
-
+    START_EPOCH = 0
     other_policy = 'n'  # input("Do you want to enabled mixed precision? y/n (NOT SUPPORTED YET): ")
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if other_policy == 'y':
@@ -162,7 +163,7 @@ if __name__ == "__main__":
     if os.path.exists(f"{log_dir}"):
         check = input(f"Would you like to continue where you left off for model: {name} y/n: ")
         if check.lower() in ['y', 'yes']:
-            model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH = checkpointing(log_dir)
+            model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH, START_EPOCH = checkpointing(log_dir)
             if not model:
                 print("Error found")
                 quit()
@@ -315,9 +316,18 @@ if __name__ == "__main__":
 
         with open("Parameters.txt", "a") as f:
             f.write(log)
-        with open(f"{log_dir}/values/hparams.txt", "w", encoding="utf8") as f:
+        print("Done writing metadata")
+        print("Writing Image Structure of the model")
+        try:
             # noinspection PyUnboundLocalVariable
-            data = f"""{str(MAX_SAMPLES)}
+            plot_model(model, f"{log_dir}/images/{name}_Image.png", expand_nested=True, show_shapes=True)
+        except Exception as e:
+            with open(f"{log_dir}/images/{name}_Image_Error.txt", "w") as f:
+                f.write(f"Image error: {e}")
+                print(f"Image error: {e}")#
+    with open(f"{log_dir}/values/hparams.txt", "w", encoding="utf8") as f:
+        # noinspection PyUnboundLocalVariable
+        data = f"""{str(MAX_SAMPLES)}
 {name}
 {str(MAX_LENGTH)}
 {str(BATCH_SIZE)}
@@ -330,18 +340,10 @@ if __name__ == "__main__":
 {str(VOCAB_SIZE)}
 {str(TARGET_VOCAB_SIZE)}
 {str(MAX_SAMPLES)}
-    """
-            f.write(data)
-            f.close()
-        print("Done writing metadata")
-        print("Writing Image Structure of the model")
-        try:
-            # noinspection PyUnboundLocalVariable
-            plot_model(model, f"{log_dir}/images/{name}_Image.png", expand_nested=True, show_shapes=True)
-        except Exception as e:
-            with open(f"{log_dir}/images/{name}_Image_Error.txt", "w") as f:
-                f.write(f"Image error: {e}")
-                print(f"Image error: {e}")
+{str(EPOCHS + START_EPOCH)}
+"""
+        f.write(data)
+        f.close()
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="500, 600")
     # noinspection PyUnboundLocalVariable
@@ -355,5 +357,6 @@ if __name__ == "__main__":
     with tf.profiler.experimental.Trace("Train"):
         # noinspection PyUnboundLocalVariable
         model.fit(dataset_train, validation_data=dataset_val, epochs=EPOCHS,
-                  callbacks=[cp_callback, predict_callback, tensorboard_callback], use_multiprocessing=True)
+                  callbacks=[cp_callback, predict_callback, tensorboard_callback], use_multiprocessing=True,
+                  initial_epoch=START_EPOCH)
     model.summary()
