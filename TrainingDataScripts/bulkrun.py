@@ -12,10 +12,14 @@ total_rows = 0
 sql = """DROP TABLE tokenized_comment_data;"""
 for timeframe in timeframes:
     connection = sqlite3.connect('D:/Datasets/reddit_data/databases/{}'.format(timeframe))
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    total_rows += cursor.rowcount
-    connection.commit()
-    print(f"{timeframe} SQL completed successfully")
+    try:
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        total_rows += cursor.rowcount
+        connection.commit()
+    except Exception as e:
+        print(f"{timeframe} Error: {e}")
+    else:
+        print(f"{timeframe} SQL completed successfully")
 
 print(f"Total Row counts: {abs(total_rows)}")
