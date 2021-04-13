@@ -23,6 +23,8 @@ special thanks to him for lending me his hardware to train and continue to devel
 -
 - [Transformer Model](https://blog.tensorflow.org/2019/05/transformer-chatbot-tutorial-with-tensorflow-2.html) Some designs 
 are re-made or reforged, this was a key inspiration.
+-
+- [Reformer](https://openreview.net/pdf?id=rkgNKkHtvB) Code adapted from here.
   
 ### Build Status
 (TODO)
@@ -75,6 +77,6 @@ This is preconfigured with settings that Scot-Survivor needs.
 - "Improved Transformer Architecture for Sequence to Sequence Translation": https://www.cs.princeton.edu/sites/default/files/austin_wang_spring_2019.pdf- "Combining Local and Document-Level Context: The LMU Munich Neural Machine Translation System at WMT19": https://www.aclweb.org/anthology/W19-5345.pdf
 - "Improving the Transformer Translation Model with Document-Level Context": https://arxiv.org/pdf/1810.03581.pdf
 - "Illustrating The Reformer": https://towardsdatascience.com/illustrating-the-reformer-393575ac6ba0
-
+- "Reformer: The Efficient Transformer: https://openreview.net/pdf?id=rkgNKkHtvB"
 ### Licence
 (TODO)
