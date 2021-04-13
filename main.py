@@ -4,13 +4,15 @@ if __name__ == "__main__":
 
     os.environ['TF_GPU_THREAD_MODE'] = "gpu_private"
     os.environ['REDDIT_DATASET_PATH'] = "D:\\Datasets\\reddit_data\\files\\"
+    os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
+    os.environ['TF_ENABLE_CUBLAS_TENSOR_OP_MATH_FP32'] = '1'
+    os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
     DATASET_PATH = os.getenv('REDDIT_DATASET_PATH')
     import numpy as np
     from datetime import datetime
     # import tensorflow as tf Not needed since its imported through GavinBackend.models
     import tensorflow_datasets as tfds
     import GavinBackend.preprocessing.text as gbpte
-    import GavinBackend.preprocessing.tokenise as gbpt
     import GavinBackend.functions as gbf
 
     from tensorboard.plugins import projector
@@ -19,10 +21,8 @@ if __name__ == "__main__":
     from tensorflow.keras.utils import plot_model
     from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
-    def load_dataset(q_s, a_s, u_cores, max_length, start_token, end_token, t, buffer_size, batch_size):
-        print("Filtering data")
-        q_s, a_s = gbpt.tokenize_dataset(q_s, a_s, u_cores, max_length, start_token, end_token,
-                                         t)  # Filter all the data
+
+    def load_dataset(q_s, a_s, buffer_size, batch_size):
         sizes = (len(q_s), len(a_s))
         print(f"Answers: {sizes[1]}\nQuestions: {sizes[0]}")
         questions_train = q_s[0: int(sizes[0] * .80)]
@@ -98,7 +98,6 @@ if __name__ == "__main__":
                     VOCAB_SIZE: {vocab_size}
                     """)
                 file.close()
-                u_cores = int(input("How many cores would you like to use for pre-processing: "))
                 loaded_tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(
                     f"{model_dir}/tokenizer/vocabTokenizer")
                 q_s, a_s = gbpte.load_data(max_samples, DATASET_PATH)
@@ -116,18 +115,18 @@ if __name__ == "__main__":
 
                     loaded_model = base.return_model()
                     loaded_model.load_weights(f"{model_dir}/cp.ckpt").expect_partial()
-                dataset_t, dataset_v = load_dataset(q_s, a_s, u_cores, max_length, start_token, end_token, loaded_tokenizer, buffer_size, batch_size)
+                dataset_t, dataset_v = load_dataset(q_s, a_s, buffer_size, batch_size)
                 return loaded_model, dataset_t, dataset_v, d_model, loaded_tokenizer, start_token, end_token, vocab_size, max_length, start_epoch
         else:
             print("No check point data found.")
-            return False, False, False, False, False, False, False
+            quit()
+
 
     START_EPOCH = 0
     other_policy = 'n'  # input("Do you want to enabled mixed precision? y/n (NOT SUPPORTED YET): ")
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if other_policy == 'y':
         MIXED = True
-        gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
             try:
                 for gpu in gpus:
@@ -140,9 +139,14 @@ if __name__ == "__main__":
         mixed_precision.set_policy(policy)
     else:
         MIXED = False
-        config = tf.compat.v1.ConfigProto()
-        config.gpu_options.allow_growth = True
-        session = tf.compat.v1.Session(config=config)
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(f"{len(gpus)} Physical GPUS, {len(logical_gpus)} Logical GPUS.")
+            except RuntimeError as e:
+                print(e)
 
     path_to_dataset = "cornell movie-dialogs corpus"
 
@@ -163,7 +167,8 @@ if __name__ == "__main__":
     if os.path.exists(f"{log_dir}"):
         check = input(f"Would you like to continue where you left off for model: {name} y/n: ")
         if check.lower() in ['y', 'yes']:
-            model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH, START_EPOCH = checkpointing(log_dir)
+            model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH, START_EPOCH = checkpointing(
+                log_dir)
             if not model:
                 print("Error found")
                 quit()
@@ -191,8 +196,6 @@ if __name__ == "__main__":
         tokenizerPath = None
         if load == "y":
             tokenizerPath = input("Please enter the path the tokenizer: ")
-        cores = int(input("How many cores would you like to use for pre-processing: "))
-        regex_cores = cores
         TARGET_VOCAB_SIZE = 2 ** 14
 
         checkpoint_path = f"{log_dir}/cp.ckpt"
@@ -208,32 +211,24 @@ if __name__ == "__main__":
             print("Already exists not creating folders")
             pass
 
-        print("Loading files...")
-        questions, answers = gbpte.load_data(MAX_SAMPLES, DATASET_PATH)
-        print("Done loading...")
-
         if load == "n":  # If we're not loading the tokenizer then generate this
-            print("Starting Tokenizer this may take a while....")
-            # Build tokenizer using tfds for both questions and answers
-            tokenizer = tfds.deprecated.text.SubwordTextEncoder.build_from_corpus(
-                questions + answers, target_vocab_size=TARGET_VOCAB_SIZE)
-            tokenizer.save_to_file(f"{log_dir}/tokenizer/vocabTokenizer")
+            print("Please create a Tokenizer with the appropriate script.")
+            quit()
         else:  # load the tokenizer
             tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(tokenizerPath)
             tokenizer.save_to_file(f"{log_dir}/tokenizer/vocabTokenizer")
-        print("Done Tokenizer.")
 
         # Define start and end token to indicate the start and end of a sentence
+        # noinspection PyUnboundLocalVariable
         START_TOKEN, END_TOKEN = [tokenizer.vocab_size], [tokenizer.vocab_size + 1]  # Set the START and END tokens
+
+        print("Loading files...")
+        questions, answers = gbpte.load_tokenized_data(MAX_SAMPLES, DATASET_PATH, os.path.basename(tokenizerPath),
+                                                       MAX_LENGTH, START_TOKEN, END_TOKEN)
+        print("Done loading...")
 
         # Vocabulary size plus start and end token
         VOCAB_SIZE = tokenizer.vocab_size + 2  # In create the vocab size to account for the start end token
-
-        print(f"Pickling Questions and answers for {name}")
-        questionsMarshal = f"{log_dir}/pickles/{name}_questions.marshal"
-        answersMarshal = f"{log_dir}/pickles/{name}_answers.marshal"
-        # gbpc.save_files(questions, answers, questionsMarshal, answersMarshal)
-        print(f"Done saving....")
 
         with mirrored_strategy.scope():  # Use the mirrored strategy to create the model
             transformer = Transformer(
@@ -246,7 +241,7 @@ if __name__ == "__main__":
                 mixed=MIXED)
             model = transformer.return_model()
 
-        dataset_train, dataset_val = load_dataset(questions, answers, cores, MAX_LENGTH, START_TOKEN, END_TOKEN, tokenizer, BUFFER_SIZE, BATCH_SIZE)
+        dataset_train, dataset_val = load_dataset(questions, answers, BUFFER_SIZE, BATCH_SIZE)
 
     # noinspection PyAbstractClass,PyShadowingNames
     class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
@@ -324,7 +319,7 @@ if __name__ == "__main__":
         except Exception as e:
             with open(f"{log_dir}/images/{name}_Image_Error.txt", "w") as f:
                 f.write(f"Image error: {e}")
-                print(f"Image error: {e}")#
+                print(f"Image error: {e}")
     with open(f"{log_dir}/values/hparams.txt", "w", encoding="utf8") as f:
         # noinspection PyUnboundLocalVariable
         data = f"""{str(MAX_SAMPLES)}
@@ -345,7 +340,7 @@ if __name__ == "__main__":
         f.write(data)
         f.close()
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="500, 600")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="500, 800")
     # noinspection PyUnboundLocalVariable
     predict_callback = PredictCallback(tokenizer=tokenizer, start_token=START_TOKEN, end_token=END_TOKEN,
                                        max_length=MAX_LENGTH,
