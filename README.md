@@ -18,7 +18,7 @@ This Allows for some rather coherent responses. Under the correct Training condi
 - [ShmarvDogg](https://github.com/Shmarvadon) Without him this project wouldn't be possible, 
 special thanks to him for lending me his hardware to train and continue to develop Gavin.
 -
-- [WhoIsAbihag](https://github.com/WhoIsAbishag) For his work with Irene the ChatBot 
+- [WhoIsAbishag](https://github.com/WhoIsAbishag) For his work with Irene the ChatBot 
   (AI based on OpenAI). He incites, coherent and contextual responses from Chat Bots.
 -
 - [Transformer Model](https://blog.tensorflow.org/2019/05/transformer-chatbot-tutorial-with-tensorflow-2.html) Some designs 
