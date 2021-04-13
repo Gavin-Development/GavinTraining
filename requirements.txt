@@ -7,3 +7,4 @@ nltk==3.5
 tqdm>=4.58.0
 zstandard>=0.15.2
 pandas==1.2.3
+psutil==5.8.0
