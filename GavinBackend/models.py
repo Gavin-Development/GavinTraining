@@ -35,6 +35,7 @@ class Transformer:
         self.num_heads = num_heads
         self.dropout = dropout
         self._model_name = name
+        self.default_dtype = tf.float32 if not mixed else tf.float16
         inputs = tf.keras.Input(shape=(None,), name="inputs")
         dec_inputs = tf.keras.Input(shape=(None,), name="dec_inputs")
 
@@ -118,7 +119,8 @@ class Transformer:
         padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
 
         embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
-        embeddings *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+        embeddings *= tf.math.sqrt(tf.cast(self.d_model, self.default_dtype))
+        embeddings = tf.cast(embeddings, tf.float32)
         embeddings = PositionalEncoding(self.vocab_size, self.d_model)(embeddings)
 
         outputs = tf.keras.layers.Dropout(rate=self.dropout)(embeddings)
@@ -184,7 +186,8 @@ class Transformer:
         padding_mask = tf.keras.Input(shape=(1, 1, None), name='padding_mask')
 
         embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
-        embeddings *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+        embeddings *= tf.math.sqrt(tf.cast(self.d_model, self.default_dtype))
+        embeddings = tf.cast(embeddings, tf.float32)
         embeddings = PositionalEncoding(self.vocab_size, self.d_model)(embeddings)
 
         outputs = tf.keras.layers.Dropout(rate=self.dropout)(embeddings)
