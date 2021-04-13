@@ -18,7 +18,7 @@ if not os.path.exists('./temp/'):
 
 databases = glob.glob("D:/Datasets/reddit_data/databases/*.db")
 databases = [os.path.basename(database) for database in databases]
-subword_file = "Tokenizer-2"  # input("Please enter the name of the subword file: ")
+subword_file = "Tokenizer-1Million"  # input("Please enter the name of the subword file: ")
 subword_file_path = f"../{subword_file}"
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(subword_file_path)
 print(f"Databases to process: {len(databases)}\nVocab Size on the Tokenizer: {tokenizer.vocab_size}")
@@ -59,7 +59,7 @@ for database in databases:
                     t_comment = pickle.dumps(t_comment)
                     t_comment = base64.b64encode(t_comment)
                     sql = """INSERT INTO tokenized_comment_data (parent_id, comment_id, parent_tokenized, comment_tokenized, subreddit, unix, score, tokenizer_name) VALUES ("{}", "{}", "{}", "{}", "{}", {}, {}, "{}");""".format(
-                        parent_id, comment_id, t_parent, t_comment, subreddit, unix, score,
+                        parent_id + '_' + subword_file.split('.')[0].replace('-', '_'), comment_id, t_parent, t_comment, subreddit, unix, score,
                         subword_file.split('.')[0].replace('-', '_'))
                     cursor.execute(sql)
                     i += 1
@@ -71,6 +71,7 @@ for database in databases:
         connection.close()
         shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
         print(f"Finished Work on: {database}")
-    except sqlite3.IntegrityError or sqlite3.OperationalError:
+    except sqlite3.IntegrityError or sqlite3.OperationalError as e:
+        print(f"Error: {e}")
         connection.close()
         shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
