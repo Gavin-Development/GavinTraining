@@ -1,6 +1,7 @@
 import re
 import pickle
 import base64
+import tqdm
 
 from GavinBackend.models import tf
 from concurrent.futures import ProcessPoolExecutor
@@ -36,8 +37,9 @@ def read_thread(path, reddit_set_max):
     return lines
 
 
-def tokenized_read_thread(path, reddit_set_max, s_token, e_token):
+def tokenized_read_thread(path, reddit_set_max, s_token, e_token, thread_id=0):
     lines = []
+    pbar = tqdm.tqdm(total=reddit_set_max//2, desc=f"Thread: {thread_id}")
     with open(path, "r") as f:
         for i in range(reddit_set_max // 2):
             line = next(f).strip("'b'")
@@ -48,6 +50,7 @@ def tokenized_read_thread(path, reddit_set_max, s_token, e_token):
             line.insert(0, s_token[0])
             line.append(e_token[0])
             lines.append(line)
+            pbar.update(1)
     return lines
 
 
@@ -61,12 +64,11 @@ def load_data(reddit_set_max, path):
 
 def load_tokenized_data(reddit_set_max, path, tokenizer_name, max_len, s_token, e_token):
     with ProcessPoolExecutor(2) as executor:
-        inputs_fn = executor.submit(tokenized_read_thread, f"{path}{tokenizer_name}.from", reddit_set_max, s_token, e_token)
-        outputs_fn = executor.submit(tokenized_read_thread, f"{path}{tokenizer_name}.to", reddit_set_max, s_token, e_token)
+        inputs_fn = executor.submit(tokenized_read_thread, f"{path}{tokenizer_name}.from", reddit_set_max, s_token, e_token, 0)
+        outputs_fn = executor.submit(tokenized_read_thread, f"{path}{tokenizer_name}.to", reddit_set_max, s_token, e_token, 1)
         executor.shutdown()
     print("Beginning padding.")
 
-    # Leave 10% free memory. On large values of reddit_set_max this could crash some OS's. Before python Raises MemoryError
     inputs = tf.keras.preprocessing.sequence.pad_sequences(inputs_fn.result(), maxlen=max_len, padding='post')
     outputs = tf.keras.preprocessing.sequence.pad_sequences(outputs_fn.result(), maxlen=max_len, padding='post')
     return inputs, outputs
