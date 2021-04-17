@@ -21,6 +21,8 @@ if __name__ == "__main__":
     from tensorflow.keras.utils import plot_model
     from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
+    TARGET_VOCAB_SIZE = 2 ** 14
+
 
     def load_dataset(q_s, a_s, buffer_size, batch_size):
         sizes = (len(q_s), len(a_s))
@@ -68,6 +70,7 @@ if __name__ == "__main__":
 
     def checkpointing(model_dir):
         if os.path.exists(f'{model_dir}/checkpoint'):
+            tokenizer_path = input("Please enter the path to the tokenizer: ")
             with open(f"{model_dir}/values/hparams.txt", "r", encoding="utf8") as file:
                 lines = file.readlines()
                 formatted = []
@@ -83,7 +86,7 @@ if __name__ == "__main__":
                 units = int(formatted[8])
                 dropout = float(formatted[9])
                 vocab_size = int(formatted[10])
-                start_epoch = int(formatted[11])
+                start_epoch = int(formatted[13])
                 print(f"""
                     Imported Hyper Parameters from {model_dir}/values/hparams.txt
                     MAX_SAMPLES: {max_samples}
@@ -100,9 +103,10 @@ if __name__ == "__main__":
                 file.close()
                 loaded_tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(
                     f"{model_dir}/tokenizer/vocabTokenizer")
-                q_s, a_s = gbpte.load_data(max_samples, DATASET_PATH)
                 start_token, end_token = [loaded_tokenizer.vocab_size], [
                     loaded_tokenizer.vocab_size + 1]  # Set the START and END tokens
+                q_s, a_s = gbpte.load_tokenized_data(max_samples, DATASET_PATH, os.path.basename(tokenizer_path),
+                                                     max_length, start_token, end_token)
 
                 with mirrored_strategy.scope():
                     base = Transformer(
@@ -116,7 +120,7 @@ if __name__ == "__main__":
                     loaded_model = base.return_model()
                     loaded_model.load_weights(f"{model_dir}/cp.ckpt").expect_partial()
                 dataset_t, dataset_v = load_dataset(q_s, a_s, buffer_size, batch_size)
-                return loaded_model, dataset_t, dataset_v, d_model, loaded_tokenizer, start_token, end_token, vocab_size, max_length, start_epoch
+                return loaded_model, dataset_t, dataset_v, d_model, loaded_tokenizer, start_token, end_token, vocab_size, max_length, start_epoch, max_samples, batch_size, buffer_size, num_layers, num_heads, units, dropout
         else:
             print("No check point data found.")
             quit()
@@ -167,7 +171,7 @@ if __name__ == "__main__":
     if os.path.exists(f"{log_dir}"):
         check = input(f"Would you like to continue where you left off for model: {name} y/n: ")
         if check.lower() in ['y', 'yes']:
-            model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH, START_EPOCH = checkpointing(
+            model, dataset_train, dataset_val, D_MODEL, tokenizer, START_TOKEN, END_TOKEN, VOCAB_SIZE, MAX_LENGTH, START_EPOCH, MAX_SAMPLES, BATCH_SIZE, BUFFER_SIZE, NUM_LAYERS, NUM_HEADS, UNITS, DROPOUT = checkpointing(
                 log_dir)
             if not model:
                 print("Error found")
@@ -243,7 +247,7 @@ if __name__ == "__main__":
 
         dataset_train, dataset_val = load_dataset(questions, answers, BUFFER_SIZE, BATCH_SIZE)
 
-    # noinspection PyAbstractClass,PyShadowingNames
+
     class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
         def __init__(self, d_model, warmup_steps=5000):
@@ -334,13 +338,12 @@ if __name__ == "__main__":
 {str(DROPOUT)}
 {str(VOCAB_SIZE)}
 {str(TARGET_VOCAB_SIZE)}
-{str(MAX_SAMPLES)}
 {str(EPOCHS + START_EPOCH)}
 """
         f.write(data)
         f.close()
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_weights_only=True, verbose=1)
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="500, 800")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch="500, 600")
     # noinspection PyUnboundLocalVariable
     predict_callback = PredictCallback(tokenizer=tokenizer, start_token=START_TOKEN, end_token=END_TOKEN,
                                        max_length=MAX_LENGTH,
@@ -351,7 +354,7 @@ if __name__ == "__main__":
     model.compile(optimizer=optimizer, loss=gbf.loss_function, metrics=['accuracy'])
     with tf.profiler.experimental.Trace("Train"):
         # noinspection PyUnboundLocalVariable
-        model.fit(dataset_train, validation_data=dataset_val, epochs=EPOCHS,
+        model.fit(dataset_train, validation_data=dataset_val, epochs=EPOCHS + START_EPOCH,
                   callbacks=[cp_callback, predict_callback, tensorboard_callback], use_multiprocessing=True,
                   initial_epoch=START_EPOCH)
     model.summary()
