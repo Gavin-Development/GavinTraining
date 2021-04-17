@@ -118,7 +118,7 @@ class Transformer:
         inputs = tf.keras.Input(shape=(None,), name="inputs")
         padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
 
-        embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
+        embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model, name='encoder_embedding')(inputs)
         embeddings *= tf.math.sqrt(tf.cast(self.d_model, self.default_dtype))
         embeddings = tf.cast(embeddings, tf.float32)
         embeddings = PositionalEncoding(self.vocab_size, self.d_model)(embeddings)
@@ -185,7 +185,7 @@ class Transformer:
             shape=(1, None, None), name='look_ahead_mask')
         padding_mask = tf.keras.Input(shape=(1, 1, None), name='padding_mask')
 
-        embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
+        embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model, name='decoder_embedding')(inputs)
         embeddings *= tf.math.sqrt(tf.cast(self.d_model, self.default_dtype))
         embeddings = tf.cast(embeddings, tf.float32)
         embeddings = PositionalEncoding(self.vocab_size, self.d_model)(embeddings)

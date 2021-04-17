@@ -14,7 +14,7 @@ def scaled_dot_product_attention(query, key, value, mask):
         logits += (mask * -1e9)
 
     attention_weights = tf.nn.softmax(logits, axis=-1)
-    return tf.matmul(attention_weights, value)
+    return tf.matmul(attention_weights, value), logits  # The return of logits acts as the attention data.
 
 
 # noinspection PyMethodOverriding,PyMethodMayBeStatic
@@ -109,7 +109,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         key = self.split_heads(key, batch_size)
         value = self.split_heads(value, batch_size)
 
-        scaled_attention = scaled_dot_product_attention(query, key, value, mask)
+        scaled_attention, attention_weights = scaled_dot_product_attention(query, key, value, mask)
 
         scaled_attention = tf.transpose(scaled_attention, perm=[0, 2, 1, 3])
 
@@ -118,7 +118,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         outputs = self.dense(concat_attention)
 
-        return outputs
+        return outputs, attention_weights
 
     def get_config(self):
         cfg = super().get_config()
