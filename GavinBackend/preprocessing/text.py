@@ -71,4 +71,5 @@ def load_tokenized_data(reddit_set_max, path, tokenizer_name, max_len, s_token, 
 
     inputs = tf.keras.preprocessing.sequence.pad_sequences(inputs_fn.result(), maxlen=max_len, padding='post')
     outputs = tf.keras.preprocessing.sequence.pad_sequences(outputs_fn.result(), maxlen=max_len, padding='post')
+    print("Done padding.")
     return inputs, outputs
