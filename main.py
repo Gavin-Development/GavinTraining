@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 units = int(formatted[8])
                 dropout = float(formatted[9])
                 vocab_size = int(formatted[10])
-                start_epoch = int(formatted[13])
+                start_epoch = int(formatted[12])
                 print(f"""
                     Imported Hyper Parameters from {model_dir}/values/hparams.txt
                     MAX_SAMPLES: {max_samples}
