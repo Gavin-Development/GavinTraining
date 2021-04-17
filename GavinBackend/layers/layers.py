@@ -118,7 +118,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         outputs = self.dense(concat_attention)
 
-        return outputs, attention_weights
+        return outputs
 
     def get_config(self):
         cfg = super().get_config()
