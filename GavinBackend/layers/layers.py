@@ -61,7 +61,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return cfg
 
 
-# noinspection PyMethodOverriding,PyShadowingNames
+# noinspection PyMethodOverriding,PyShadowingNames,Assert
 class MultiHeadAttention(tf.keras.layers.Layer):
     def __init__(self, d_model, num_heads, name="multi_head_attention"):
         """Multi Head Attention Layer
@@ -149,6 +149,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# noinspection Assert
 class TFLSHAttention(tf.keras.layers.Layer):
     def __init__(self,
                  dropout=0.,
