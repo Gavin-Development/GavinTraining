@@ -187,7 +187,7 @@ if __name__ == "__main__":
         MAX_SAMPLES = int(input("MAX_SAMPLES: "))
         BATCH_SIZE = int(input("BATCH_SIZE(32): "))
         BUFFER_SIZE = 20_000
-        MAX_LENGTH = 50 + 2
+        MAX_LENGTH = 40 + 2
 
         # Hyper-parameters
         NUM_LAYERS = int(input("Please enter the number of NUM_LAYERS(4): "))
