@@ -79,4 +79,4 @@ This is preconfigured with settings that Scot-Survivor needs.
 - "Illustrating The Reformer": https://towardsdatascience.com/illustrating-the-reformer-393575ac6ba0
 - "Reformer: The Efficient Transformer: https://openreview.net/pdf?id=rkgNKkHtvB"
 ### Licence
-(TODO)
+[GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.txt). Should have a copy with this software.
