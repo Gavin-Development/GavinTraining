@@ -216,3 +216,4 @@ venv
 .idea
 bunchOfLogs
 test.py
+Parameters.txt
