@@ -23,12 +23,13 @@ subword_file_path = f"../{subword_file}"
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(subword_file_path)
 print(f"Databases to process: {len(databases)}\nVocab Size on the Tokenizer: {tokenizer.vocab_size}")
 for database in databases:
+    runs = 0
     try:
         print(f"Starting Work on: {database}")
         limit = 3_000_000
         shutil.move('D:/Datasets/reddit_data/databases/{}'.format(database), './temp/{}'.format(database))
         connection = sqlite3.connect('./temp/{}'.format(database))
-        sql = "CREATE TABLE IF NOT EXISTS tokenized_comment_data (parent_id TEXT PRIMARY KEY, comment_id TEXT, parent_tokenized TEXT, comment_tokenized TEXT, subreddit TEXT, unix INT, score INT, tokenizer_name TEXT)"
+        sql = "CREATE TABLE IF NOT EXISTS tokenized_comment_data_new (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id TEXT, comment_id TEXT, parent_tokenized TEXT, comment_tokenized TEXT, subreddit TEXT, unix INT, score INT, tokenizer_name TEXT)"
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
@@ -36,6 +37,7 @@ for database in databases:
         cur_length = limit
 
         while cur_length == limit:
+            runs += 1
             try:
                 df = pd.read_sql(
                     "SELECT * FROM parent_reply WHERE unix > {} and parent NOT NULL and score > 0 ORDER BY unix ASC LIMIT {}".format(
@@ -58,7 +60,7 @@ for database in databases:
                     t_comment = tokenizer.encode(comment)
                     t_comment = pickle.dumps(t_comment)
                     t_comment = base64.b64encode(t_comment)
-                    sql = """INSERT INTO tokenized_comment_data (parent_id, comment_id, parent_tokenized, comment_tokenized, subreddit, unix, score, tokenizer_name) VALUES ("{}", "{}", "{}", "{}", "{}", {}, {}, "{}");""".format(
+                    sql = """INSERT INTO tokenized_comment_data_new (parent_id, comment_id, parent_tokenized, comment_tokenized, subreddit, unix, score, tokenizer_name) VALUES ("{}", "{}", "{}", "{}", "{}", {}, {}, "{}");""".format(
                         parent_id + '_' + subword_file.split('.')[0].replace('-', '_'), comment_id, t_parent, t_comment, subreddit, unix, score,
                         subword_file.split('.')[0].replace('-', '_'))
                     cursor.execute(sql)
@@ -72,6 +74,6 @@ for database in databases:
         shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
         print(f"Finished Work on: {database}")
     except sqlite3.IntegrityError or sqlite3.OperationalError as e:
-        print(f"Error: {e}")
+        print(f"Error: {e} Run: {runs}")
         connection.close()
         shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
