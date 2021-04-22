@@ -1,10 +1,11 @@
-from GavinBackend import tf
+from GavinBackend import tf, tfds, np
 from tqdm import tqdm
 from GavinBackend.preprocessing.concurrent import chunk
 from concurrent.futures import ProcessPoolExecutor, wait, ThreadPoolExecutor
+from typing import List, Tuple, AnyStr, Dict
 
 
-def tokenize(s_token, e_token, u_tokenizer, train_data, thread_id):
+def tokenize(s_token: List[int], e_token: List[int], u_tokenizer: tfds.deprecated.text.SubwordTextEncoder, train_data: List[Tuple[AnyStr, AnyStr]], thread_id: int) -> Dict[AnyStr: List[List[int]]]:
     print(f"Size: {len(train_data)*2} on {thread_id}")
     # Create empty arrays
     # Add the Start token at the start of all rows
@@ -22,7 +23,7 @@ def tokenize(s_token, e_token, u_tokenizer, train_data, thread_id):
     return outputs
 
 
-def tokenize_dataset(inputs, outputs, cores, max_len, s_token, e_token, tokenizer):
+def tokenize_dataset(inputs: List[AnyStr], outputs: List[AnyStr], cores: int, max_len: int, s_token: List[int], e_token: List[int], tokenizer: tfds.deprecated.text.SubwordTextEncoder) -> Tuple[np.ndarray, np.ndarray]:
     training_data = list(zip(inputs, outputs))
     del inputs, outputs
     data_gen = chunk(training_data, cores)

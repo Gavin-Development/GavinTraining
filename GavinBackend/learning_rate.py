@@ -3,7 +3,7 @@ from GavinBackend import tf
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
-    def __init__(self, d_model, warmup_steps=5000):
+    def __init__(self, d_model: int, warmup_steps: int = 5000):
         super(CustomSchedule, self).__init__()
 
         self.d_model = d_model
@@ -11,7 +11,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
         self.warmup_steps = warmup_steps
 
-    def __call__(self, step):
+    def __call__(self, step: int):
         step = tf.cast(step, tf.float32)
         arg1 = tf.math.rsqrt(step)
         arg2 = step * (self.warmup_steps ** -1.5)

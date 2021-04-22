@@ -1,8 +1,8 @@
-from GavinBackend import tf
+from GavinBackend import tf, tfds
 from GavinBackend.preprocessing.text import preprocess_sentence
 
 
-def loss_function(y_true, y_pred, max_len=52):
+def loss_function(y_true, y_pred, max_len: int = 42):
     y_true = tf.reshape(y_true, shape=(-1, max_len - 1))
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(
@@ -14,7 +14,7 @@ def loss_function(y_true, y_pred, max_len=52):
     return tf.reduce_mean(loss)
 
 
-def evaluate(sentence, model, max_len, s_token, e_token, tokenizer):
+def evaluate(sentence: str, model: tf.keras.models.Model, max_len: int, s_token: list, e_token: list, tokenizer: tfds.deprecated.text.SubwordTextEncoder):
     sentence = preprocess_sentence(sentence)
 
     sentence = tf.expand_dims(s_token + tokenizer.encode(sentence) + e_token, axis=0)
@@ -37,13 +37,13 @@ def evaluate(sentence, model, max_len, s_token, e_token, tokenizer):
     return tf.squeeze(output, axis=0)
 
 
-def accuracy(y_true, y_pred, max_len):
+def accuracy(y_true, y_pred, max_len: int):
     # ensure labels have shape (batch_size, MAX_LENGTH - 1)
     y_true = tf.reshape(y_true, shape=(-1, max_len - 1))
     return tf.metrics.SparseCategoricalAccuracy()(y_true, y_pred)
 
 
-def predict(sentence, model, max_len, s_token, e_token, tokenizer):
+def predict(sentence: str, model: tf.keras.models.Model, max_len: int, s_token: list, e_token: list, tokenizer: tfds.deprecated.text.SubwordTextEncoder):
     prediction = evaluate(sentence, model, max_len, s_token, e_token, tokenizer)
 
     predicated_sentence = tokenizer.decode([i for i in prediction if i < tokenizer.vocab_size])

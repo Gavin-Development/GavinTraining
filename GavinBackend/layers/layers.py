@@ -1,4 +1,5 @@
 from GavinBackend import tf
+from typing import Dict
 
 
 def scaled_dot_product_attention(query, key, value, mask):
@@ -28,11 +29,11 @@ class PositionalEncoding(tf.keras.layers.Layer):
             This is for the attention math, acts as units for other layers in the model too.
     """
 
-    def __init__(self, position, d_model):
+    def __init__(self, position: int, d_model: int):
         super(PositionalEncoding, self).__init__()
         self.pos_encoding = self.positional_encoding(position, d_model=d_model)
 
-    def get_angles(self, position, i, d_model):
+    def get_angles(self, position: int, i, d_model: int):
         angles = 1 / tf.pow(10000, (2 * (i // 2)) / tf.cast(d_model, tf.float32))
         return position * angles
 
@@ -61,7 +62,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
 
 # noinspection PyMethodOverriding,PyShadowingNames
 class MultiHeadAttention(tf.keras.layers.Layer):
-    def __init__(self, d_model, num_heads, name="multi_head_attention"):
+    def __init__(self, d_model: int, num_heads: int, name: str = "multi_head_attention"):
         """Multi Head Attention Layer
 
         ...
@@ -87,12 +88,12 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         self.dense = tf.keras.layers.Dense(units=d_model)
 
-    def split_heads(self, inputs, batch_size):
+    def split_heads(self, inputs, batch_size: int):
         inputs = tf.reshape(
             inputs, shape=(batch_size, -1, self.num_heads, self.depth))
         return tf.transpose(inputs, perm=[0, 2, 1, 3])
 
-    def call(self, inputs):
+    def call(self, inputs: Dict):
         query, key, value, mask = inputs['query'], inputs['key'], inputs[
             'value'], inputs['mask']
         batch_size = tf.shape(query)[0]

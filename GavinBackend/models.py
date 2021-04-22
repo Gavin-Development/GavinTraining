@@ -28,7 +28,7 @@ class Transformer:
     """
 
     def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
-                 name="transformer", mixed=False, **kwargs):
+                 name: str = "transformer", mixed: bool = False, **kwargs):
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.units = units
@@ -64,7 +64,7 @@ class Transformer:
     def return_model(self):
         return self.model
 
-    def encoder_layer(self, name="encoder_layer"):
+    def encoder_layer(self, name: str = "encoder_layer"):
         """Encoder Layer
         Arguments:
             :arg name: str
@@ -109,7 +109,7 @@ class Transformer:
         padding_mask = self.create_padding_mask(x)
         return tf.maximum(look_ahead_mask, padding_mask)
 
-    def encoder(self, name='encoder'):
+    def encoder(self, name: str = 'encoder'):
         """Encoder Sub Model
 
         Arguments:
@@ -134,7 +134,7 @@ class Transformer:
         return tf.keras.Model(
             inputs=[inputs, padding_mask], outputs=outputs, name=name)
 
-    def decoder_layer(self, name="decoder_layer"):
+    def decoder_layer(self, name: str = "decoder_layer"):
         """Decoder Layer
                 Arguments:
                     :arg name: str
@@ -174,7 +174,7 @@ class Transformer:
             outputs=outputs,
             name=name)
 
-    def decoder(self, name='decoder'):
+    def decoder(self, name: str = 'decoder'):
         """Decoder Sub Model
 
         Arguments:
@@ -208,7 +208,7 @@ class Transformer:
 # noinspection PyMissingConstructor
 class DocumentLevelContextTransformer(Transformer):
     def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
-                 name="document_level_context_transformer", mixed=False, **kwargs):
+                 name: str = "document_level_context_transformer", mixed: bool = False, **kwargs):
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.units = units
@@ -246,7 +246,7 @@ class DocumentLevelContextTransformer(Transformer):
 
         self.model = tf.keras.Model(inputs=[inputs, dec_inputs, context_inputs], outputs=outputs, name=name)
 
-    def context(self, name='context'):
+    def context(self, name: str = 'context'):
         context_inputs = tf.keras.Input(shape=(None,), name="context_inputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name='context_padding_mask')
 
@@ -264,7 +264,7 @@ class DocumentLevelContextTransformer(Transformer):
 
         return tf.keras.Model(inputs=[context_inputs, context_padding_mask], outputs=outputs, name=name)
 
-    def context_layer(self, name="context_layer"):
+    def context_layer(self, name: str = "context_layer"):
         context_inputs = tf.keras.Input(shape=(None, self.d_model), name="context_inputs")
         context_padding_mask = tf.keras.Input(shape=(1, 1, None), name='context_padding_mask')
 
@@ -286,7 +286,7 @@ class DocumentLevelContextTransformer(Transformer):
         return tf.keras.Model(
             inputs=[context_inputs, context_padding_mask], outputs=outputs, name=name)
 
-    def encoder(self, name='encoder'):
+    def encoder(self, name: str = 'encoder'):
         """Encoder Sub Model
 
         Arguments:
@@ -312,7 +312,7 @@ class DocumentLevelContextTransformer(Transformer):
         return tf.keras.Model(
             inputs=[inputs, padding_mask, context_outputs, context_padding_mask], outputs=outputs, name=name)
 
-    def encoder_layer(self, name="encoder_layer"):
+    def encoder_layer(self, name: str = "encoder_layer"):
         """Encoder Layer
         Arguments:
             :arg name: str
@@ -351,7 +351,7 @@ class DocumentLevelContextTransformer(Transformer):
         return tf.keras.Model(
             inputs=[inputs, padding_mask, context_outputs, context_padding_mask], outputs=outputs, name=name)
 
-    def decoder_layer(self, name="decoder_layer"):
+    def decoder_layer(self, name: str = "decoder_layer"):
         """Decoder Layer
                 Arguments:
                     :arg name: str
@@ -405,7 +405,7 @@ class DocumentLevelContextTransformer(Transformer):
             outputs=outputs,
             name=name)
 
-    def decoder(self, name='decoder'):
+    def decoder(self, name: str = 'decoder'):
         """Decoder Sub Model
 
         Arguments:
