@@ -1,11 +1,11 @@
-import numpy as np
 import random
-from GavinBackend import tf
+from GavinBackend import tf, np, tfds
 from GavinBackend.preprocessing.text import preprocess_sentence
+from typing import List, AnyStr, Dict
 
 
 class PredictCallback(tf.keras.callbacks.Callback):
-    def __init__(self, tokenizer, start_token, end_token, max_length, log_dir):
+    def __init__(self, tokenizer: tfds.deprecated.text.SubwordTextEncoder, start_token: List[int], end_token: List[int], max_length: int, log_dir: AnyStr):
         super(PredictCallback, self).__init__()
         self.tokenizer = tokenizer
         self.START_TOKEN = start_token
@@ -20,7 +20,7 @@ class PredictCallback(tf.keras.callbacks.Callback):
         self.past_tests = []
         self.past_logs = []
 
-    def _evaluate(self, sentence):
+    def _evaluate(self, sentence: AnyStr):
         sentence = preprocess_sentence(sentence)
 
         sentence = tf.expand_dims(self.START_TOKEN + self.tokenizer.encode(sentence) + self.END_TOKEN, axis=0)
@@ -97,7 +97,7 @@ class EarlyStoppingAtMinLoss(tf.keras.callbacks.Callback):
           number of no improvement, training stops.
       """
 
-    def __init__(self, patience=0):
+    def __init__(self, patience: int = 0):
         super(EarlyStoppingAtMinLoss, self).__init__()
         self.patience = patience
         # best_weights to store the weights at which the minimum loss occurs.
@@ -108,7 +108,7 @@ class EarlyStoppingAtMinLoss(tf.keras.callbacks.Callback):
         self.stopped_epoch = 0
         self.best = None
 
-    def on_train_begin(self, logs=None):
+    def on_train_begin(self, logs: Dict = None):
         # The number of epoch it has waited when loss is no longer minimum.
         self.wait = 0
         # The epoch the training stops at.
@@ -116,7 +116,7 @@ class EarlyStoppingAtMinLoss(tf.keras.callbacks.Callback):
         # Initialize the best as infinity.
         self.best = np.Inf
 
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_end(self, epoch: int, logs: Dict = None):
         current = logs.get("loss")
         if np.less(current, self.best):
             self.best = current
@@ -132,6 +132,6 @@ class EarlyStoppingAtMinLoss(tf.keras.callbacks.Callback):
                 self.model.set_weights(self.best_weights)
                 self.model.save_weights(self)
 
-    def on_train_end(self, logs=None):
+    def on_train_end(self, logs: Dict = None):
         if self.stopped_epoch > 0:
             print("Epoch %05d: early stopping" % (self.stopped_epoch + 1))

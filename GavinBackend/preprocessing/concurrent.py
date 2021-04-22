@@ -2,16 +2,17 @@ import marshal
 from GavinBackend.preprocessing.text import preprocess_sentence
 from collections import Iterable
 from concurrent.futures import ProcessPoolExecutor, wait, ThreadPoolExecutor
+from typing import List, Union, IO, AnyStr
 
 
-def preprocess_process(sentences):
+def preprocess_process(sentences: list) -> list:
     outputs = []
     for sentence in sentences:
         outputs.append(preprocess_sentence(sentence))
     return outputs
 
 
-def chunk(lst, count):  # Make a list into N number of lists
+def chunk(lst: list, count: int) -> List:  # Make a list into N number of lists
     size = len(lst) // count  # figure out the size of them all
     for i in range(0, count):
         s = slice(i * size, None if i == count - 1 else (
@@ -19,7 +20,7 @@ def chunk(lst, count):  # Make a list into N number of lists
         yield lst[s]  # Yield the list
 
 
-def flatten(lis):
+def flatten(lis: Union[List[List] or list]) -> Union[List[List] or list]:
     for item in lis:
         if isinstance(item, Iterable) and not isinstance(item, str):
             for i in flatten(item):
@@ -28,20 +29,20 @@ def flatten(lis):
             yield item
 
 
-def save_marshal(item, f_path):
+def save_marshal(item: object, f_path: str) -> None:
     file = open(f_path, 'ab')
     marshal.dump(item, file)
     file.close()
 
 
-def save_files(item1, item2, file1, file2):
+def save_files(item1: object, item2: object, file1: IO[AnyStr], file2: IO[AnyStr]):
     with ThreadPoolExecutor(2) as executor:
         executor.submit(save_marshal, item1, file1)
         executor.submit(save_marshal, item2, file2)
         wait((executor.submit(save_marshal, item1, file1), executor.submit(save_marshal, item2, file2)))
 
 
-def regex_main(questions, answers, regex_cores):
+def regex_main(questions: List[AnyStr], answers: List[AnyStr], regex_cores: int):
     print("Starting Regex....")
     # Create the Generator Objects
     generator_q = chunk(questions, regex_cores)
