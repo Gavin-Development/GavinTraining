@@ -2,7 +2,7 @@ from GavinBackend import tf, tfds
 from GavinBackend.preprocessing.text import preprocess_sentence
 
 
-def loss_function(y_true, y_pred, max_len: int = 52):
+def loss_function(y_true, y_pred, max_len: int = 42):
     y_true = tf.reshape(y_true, shape=(-1, max_len - 1))
 
     loss = tf.keras.losses.SparseCategoricalCrossentropy(
