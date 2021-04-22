@@ -75,5 +75,8 @@ for database in databases:
         print(f"Finished Work on: {database}")
     except sqlite3.IntegrityError or sqlite3.OperationalError as e:
         print(f"Error: {e} Run: {runs}")
-        connection.close()
+        try:
+            connection.close()
+        except Exception as e:
+            print(f"Error: {e}")
         shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
