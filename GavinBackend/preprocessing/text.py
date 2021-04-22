@@ -62,10 +62,10 @@ def load_data(reddit_set_max, path):
     return inputs_fn.result(), outputs_fn.result()
 
 
-def load_tokenized_data(reddit_set_max, path, tokenizer_name, max_len, s_token, e_token):
+def load_tokenized_data(max_samples, tokenizer_path, tokenizer_name, max_len, s_token, e_token):
     with ProcessPoolExecutor(2) as executor:
-        inputs_fn = executor.submit(tokenized_read_thread, f"{path}{tokenizer_name}.from", reddit_set_max, s_token, e_token, 0)
-        outputs_fn = executor.submit(tokenized_read_thread, f"{path}{tokenizer_name}.to", reddit_set_max, s_token, e_token, 1)
+        inputs_fn = executor.submit(tokenized_read_thread, f"{tokenizer_path}{tokenizer_name}.from", max_samples, s_token, e_token, 0)
+        outputs_fn = executor.submit(tokenized_read_thread, f"{tokenizer_path}{tokenizer_name}.to", max_samples, s_token, e_token, 1)
         executor.shutdown()
     print("Beginning padding.")
 
