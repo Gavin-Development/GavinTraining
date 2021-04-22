@@ -200,3 +200,5 @@ fabric.properties
 
 # Scot-Survivior Env
 test.json
+.pycrunch-config.yaml
+models
