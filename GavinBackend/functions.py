@@ -1,4 +1,4 @@
-from GavinBackend.models import tf
+from GavinBackend import tf
 from GavinBackend.preprocessing.text import preprocess_sentence
 
 

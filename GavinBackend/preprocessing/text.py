@@ -3,7 +3,7 @@ import pickle
 import base64
 import tqdm
 
-from GavinBackend.models import tf
+from GavinBackend import tf
 from concurrent.futures import ProcessPoolExecutor
 
 

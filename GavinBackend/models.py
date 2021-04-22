@@ -1,4 +1,5 @@
-from GavinBackend.layers.layers import PositionalEncoding, MultiHeadAttention, tf
+from GavinBackend import tf
+from GavinBackend.layers.layers import PositionalEncoding, MultiHeadAttention
 
 
 class Transformer:

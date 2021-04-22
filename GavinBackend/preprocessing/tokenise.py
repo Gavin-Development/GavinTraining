@@ -1,6 +1,6 @@
+from GavinBackend import tf
 from tqdm import tqdm
 from GavinBackend.preprocessing.concurrent import chunk
-from GavinBackend.models import tf
 from concurrent.futures import ProcessPoolExecutor, wait, ThreadPoolExecutor
 
 
