@@ -113,6 +113,6 @@ def create_model(log_dir: str, dataset_path: str, hparams: Union[dict, OrderedDi
                            name=hparams["MODEL_NAME"],
                            mixed=hparams["OTHER_POLICY"])
         model = base.return_model()
-        if os.path.exists(os.path.join(log_dir, "checkpoint")) and load:
+        if os.path.exists(os.path.join(os.path.join(log_dir, hparams['MODEL_NAME']), "checkpoint")) and load:
             model.load_weights(os.path.join(log_dir, "cp.ckpt")).expect_partial()
     return model, dataset_t, dataset_v
