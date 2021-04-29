@@ -1,5 +1,5 @@
 import marshal
-from GavinBackend.preprocessing.text import preprocess_sentence
+from GavinBackendOld.preprocessing.text import preprocess_sentence
 from collections import Iterable
 from concurrent.futures import ProcessPoolExecutor, wait, ThreadPoolExecutor
 from typing import List, Union, IO, AnyStr
