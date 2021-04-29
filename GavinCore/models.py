@@ -1,5 +1,7 @@
-from GavinCore import tf
+import typing
+from GavinCore import tf, tfds
 from GavinCore.layers import PositionalEncoding, MultiHeadAttention
+from GavinCore.preprocessing.text import preprocess_sentence
 
 
 class Transformer:
@@ -28,7 +30,8 @@ class Transformer:
     """
 
     def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
-                 max_len: int, name: str = "transformer", mixed: bool = False):
+                 max_len: int, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None, name: str = "transformer",
+                 mixed: bool = False):
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.units = units
@@ -36,6 +39,9 @@ class Transformer:
         self.num_heads = num_heads
         self.dropout = dropout
         self.max_len = max_len
+        self.start_token, self.end_token = [self.vocab_size], [self.vocab_size + 2]
+        self.vocab_size += 2
+        self.tokenizer = tokenizer
         self._model_name = name
         self.default_dtype = tf.float32 if not mixed else tf.float16
         inputs = tf.keras.Input(shape=(None,), name="inputs")
@@ -62,10 +68,7 @@ class Transformer:
 
         self.model = tf.keras.Model(inputs=[inputs, dec_inputs], outputs=outputs, name=name)
 
-    def return_model(self):
-        return self.model
-
-    def encoder_layer(self, name: str = "encoder_layer"):
+    def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
         """Encoder Layer
         Arguments:
             :arg name: str
@@ -93,7 +96,7 @@ class Transformer:
             inputs=[inputs, padding_mask], outputs=outputs, name=name)
 
     @staticmethod
-    def create_padding_mask(x):
+    def create_padding_mask(x) -> tf.keras.Model:
         """Create a padding mask
 
         Mask the outputs for attention layers"""
@@ -101,7 +104,7 @@ class Transformer:
         # batch_size, 1, 1, sequence_length
         return mask[:, tf.newaxis, tf.newaxis, :]
 
-    def create_look_ahead_mask(self, x):
+    def create_look_ahead_mask(self, x) -> tf.Tensor:
         """Create a Look Ahead mask
 
         Allows to "look" ahead into the sentence and make predictions based on that."""
@@ -110,7 +113,7 @@ class Transformer:
         padding_mask = self.create_padding_mask(x)
         return tf.maximum(look_ahead_mask, padding_mask)
 
-    def encoder(self, name: str = 'encoder'):
+    def encoder(self, name: str = 'encoder') -> tf.keras.Model:
         """Encoder Sub Model
 
         Arguments:
@@ -135,7 +138,7 @@ class Transformer:
         return tf.keras.Model(
             inputs=[inputs, padding_mask], outputs=outputs, name=name)
 
-    def decoder_layer(self, name: str = "decoder_layer"):
+    def decoder_layer(self, name: str = "decoder_layer") -> tf.keras.Model:
         """Decoder Layer
                 Arguments:
                     :arg name: str
@@ -175,7 +178,7 @@ class Transformer:
             outputs=outputs,
             name=name)
 
-    def decoder(self, name: str = 'decoder'):
+    def decoder(self, name: str = 'decoder') -> tf.keras.Model:
         """Decoder Sub Model
 
         Arguments:
@@ -203,7 +206,7 @@ class Transformer:
             outputs=outputs,
             name=name)
 
-    def get_hparams(self):
+    def get_hparams(self) -> typing.Dict:
         config = {
             'VOCAB_SIZE': self.vocab_size,
             'NUM_LAYERS': self.num_layers,
@@ -216,7 +219,14 @@ class Transformer:
         }
         return config
 
-    def loss_function(self, y_true, y_pred):
+    def get_model(self) -> tf.keras.Model:
+        return self.model
+
+    def get_tokens(self) -> typing.Tuple[typing.List, typing.List]:
+        """Return Start and End Tokens."""
+        return self.start_token, self.end_token
+
+    def loss_function(self, y_true, y_pred) -> tf.Tensor:
         y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
@@ -226,3 +236,25 @@ class Transformer:
         loss = tf.multiply(loss, mask)
 
         return tf.reduce_mean(loss)
+
+    def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
+        sentence = preprocess_sentence(sentence)
+
+        sentence = tf.expand_dims(self.start_token + self.tokenizer.encode(sentence) + self.end_token, axis=0)
+
+        output = tf.expand_dims(self.start_token, 0)
+
+        for i in range(self.max_len):
+            predictions = self.model(inputs=[sentence, output], training=False)
+
+            # select the last word from the seq length dimension
+            predictions = predictions[:, -1:, :]
+            predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+
+            if tf.equal(predicted_id, self.end_token[0]):
+                break
+
+            # concatenated the predicted_id to the output which is given the decoder
+            # as its input
+            output = tf.concat([output, predicted_id], axis=-1)
+        return tf.squeeze(output, axis=0)
