@@ -201,3 +201,16 @@ class Transformer:
             inputs=[inputs, enc_outputs, look_ahead_mask, padding_mask],
             outputs=outputs,
             name=name)
+
+    def get_hparams(self):
+        config = {
+            'VOCAB_SIZE': self.vocab_size,
+            'NUM_LAYERS': self.num_layers,
+            'UNITS': self.units,
+            'D_MODEL': self.d_model,
+            'NUM_HEADS': self.num_heads,
+            'DROPOUT': self.dropout,
+            'MODEL_NAME': self._model_name,
+            'FLOAT16': True if self.default_dtype == tf.float16 else False
+        }
+        return config
