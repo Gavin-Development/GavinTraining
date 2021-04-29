@@ -10,31 +10,32 @@ class Transformer:
 
     Attributes:
         :arg vocab_size: int
-            The vocabulary size the Tokenizer Uses.
+            The vocabulary size.
         :arg num_layers: int
             The Number of Encoder/Decoder Layers that the model has.
         :arg units: int
-            The Number of units the Encoder/Decoder Layers have.
+            ("dff" in paper), number of units the PointWiseFeedForward networks have/
         :arg d_model: int
-            Output Units for the Embedding Layers
+            Representation Dimension
         :arg num_heads: int
-            Number of Heads the MultiHead attention will be configured with
+            Number of Heads the Attention Mechanism has.
         :arg dropout: float
-            The Dropout that the model will have. This number is between 0 and 1. Do not go higher.
+            Dropout value for dropout layers.
+        :arg max_len: int
+            Max Length of Sequence.
         :arg name: str
-            The Name the model will be configured with, defaults to "transformer"
-        :arg **kwargs
-            Key Word arguments to pass to tf.keras.Model super class
+            Name Of Model.
     """
 
     def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
-                 name: str = "transformer", mixed: bool = False, **kwargs):
+                 max_len: int, name: str = "transformer", mixed: bool = False):
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.units = units
         self.d_model = d_model
         self.num_heads = num_heads
         self.dropout = dropout
+        self.max_len = max_len
         self._model_name = name
         self.default_dtype = tf.float32 if not mixed else tf.float16
         inputs = tf.keras.Input(shape=(None,), name="inputs")
@@ -214,3 +215,14 @@ class Transformer:
             'FLOAT16': True if self.default_dtype == tf.float16 else False
         }
         return config
+
+    def loss_function(self, y_true, y_pred):
+        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
+
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(
+            from_logits=True, reduction='none')(y_true, y_pred)
+
+        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+        loss = tf.multiply(loss, mask)
+
+        return tf.reduce_mean(loss)
