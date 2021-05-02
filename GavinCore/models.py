@@ -4,6 +4,32 @@ from GavinCore.layers import PositionalEncoding, MultiHeadAttention
 from GavinCore.preprocessing.text import preprocess_sentence
 
 
+class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+
+    def __init__(self, d_model: int, warmup_steps: int = 5000):
+        super(CustomSchedule, self).__init__()
+
+        self.d_model = d_model
+        self.d_model = tf.cast(self.d_model, tf.float32)
+
+        self.warmup_steps = warmup_steps
+
+    def __call__(self, step: int):
+        step = tf.cast(step, tf.float32)
+        arg1 = tf.math.rsqrt(step)
+        arg2 = step * (self.warmup_steps ** -1.5)
+
+        return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+
+    def get_config(self):
+        config = super(CustomSchedule, self).get_config()
+        config.update({
+            'd_model': self.d_model,
+            'warmup_steps': self.warmup_steps
+        })
+        return config
+
+
 class TransformerIntegration:
     """TransformerIntegration Model
 
@@ -233,6 +259,10 @@ class TransformerIntegration:
         """Return Start and End Tokens."""
         return self.start_token, self.end_token
 
+    def get_optimizer(self) -> tf.keras.optimizers.Adam:
+        learning_rate = CustomSchedule(self.d_model)
+        return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9)
+
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
         y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
 
@@ -277,3 +307,19 @@ class TransformerIntegration:
         predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.vocab_size])
 
         return predicated_sentence
+
+    def compile(self) -> None:
+        """Compile the model attribute to allow for training."""
+        self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
+
+    def fit(self, training_dataset: tf.data.Dataset,
+            epochs: int,
+            initial_epoch: int = 0,
+            callbacks: typing.List = None,
+            validation_dataset: tf.data.Dataset = None):
+        """Call .fit() on the model attribute.
+        Runs the train sequence for self.model"""
+        with tf.profiler.experimental.Trace("Train"):
+            history = self.model.fit(training_dataset, validation_dataset=validation_dataset, epochs=epochs,
+                                     callbacks=callbacks, use_multiprocessing=True, initial_epoch=initial_epoch)
+            return history
