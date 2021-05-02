@@ -330,8 +330,9 @@ class TransformerIntegration:
             validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
+        self.compile()
         with tf.profiler.experimental.Trace("Train"):
-            history = self.model.fit(training_dataset, validation_dataset=validation_dataset, epochs=epochs,
+            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs,
                                      callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
                                      use_multiprocessing=True, initial_epoch=initial_epoch)
             return history
