@@ -43,6 +43,7 @@ class TransformerIntegration:
         self.start_token, self.end_token = [self.vocab_size], [self.vocab_size + 2]
         self.vocab_size += 2
         self.tokenizer = tokenizer
+        self.tokenizer.vocab_size = self.vocab_size
         self.name = name
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.model = None
@@ -264,3 +265,15 @@ class TransformerIntegration:
             # as its input
             output = tf.concat([output, predicted_id], axis=-1)
         return tf.squeeze(output, axis=0)
+
+    def accuracy(self, y_true, y_pred) -> tf.Tensor:
+        # ensure labels have shape (batch_size, MAX_LENGTH - 1)
+        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
+        return tf.metrics.SparseCategoricalAccuracy()(y_true, y_pred)
+
+    def predict(self, sentence: str) -> typing.AnyStr:
+        prediction = self.evaluate(sentence)
+
+        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.vocab_size])
+
+        return predicated_sentence
