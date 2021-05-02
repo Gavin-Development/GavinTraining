@@ -30,8 +30,8 @@ class Transformer:
     """
 
     def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
-                 max_len: int, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None, name: str = "transformer",
-                 mixed: bool = False):
+                 max_len: int, log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
+                 name: typing.AnyStr = "transformer", mixed: bool = False):
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.units = units
@@ -39,11 +39,17 @@ class Transformer:
         self.num_heads = num_heads
         self.dropout = dropout
         self.max_len = max_len
+        self.log_dir = log_dir
         self.start_token, self.end_token = [self.vocab_size], [self.vocab_size + 2]
         self.vocab_size += 2
         self.tokenizer = tokenizer
-        self._model_name = name
+        self.name = name
         self.default_dtype = tf.float32 if not mixed else tf.float16
+        self.model = None
+
+        self.setup_model()
+
+    def setup_model(self):
         inputs = tf.keras.Input(shape=(None,), name="inputs")
         dec_inputs = tf.keras.Input(shape=(None,), name="dec_inputs")
 
@@ -64,9 +70,9 @@ class Transformer:
 
         dec_outputs = self.decoder()(inputs=[dec_inputs, enc_outputs, look_ahead_mask, dec_padding_mask])
 
-        outputs = tf.keras.layers.Dense(units=vocab_size, name="outputs")(dec_outputs)
+        outputs = tf.keras.layers.Dense(units=self.vocab_size, name="outputs")(dec_outputs)
 
-        self.model = tf.keras.Model(inputs=[inputs, dec_inputs], outputs=outputs, name=name)
+        self.model = tf.keras.Model(inputs=[inputs, dec_inputs], outputs=outputs, name=self.name)
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
         """Encoder Layer
@@ -214,7 +220,7 @@ class Transformer:
             'D_MODEL': self.d_model,
             'NUM_HEADS': self.num_heads,
             'DROPOUT': self.dropout,
-            'MODEL_NAME': self._model_name,
+            'MODEL_NAME': self.name,
             'FLOAT16': True if self.default_dtype == tf.float16 else False
         }
         return config
