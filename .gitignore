@@ -201,4 +201,7 @@ fabric.properties
 # Scot-Survivior Env
 test.json
 .pycrunch-config.yaml
+.pytest_cache
 models
+GavinBackendOldBackup
+/GavinBackendOldBackup/
