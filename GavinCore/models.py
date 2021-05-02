@@ -1,4 +1,6 @@
+import os
 import typing
+
 from GavinCore import tf, tfds
 from GavinCore.layers import PositionalEncoding, MultiHeadAttention
 from GavinCore.preprocessing.text import preprocess_sentence
@@ -65,12 +67,12 @@ class TransformerIntegration:
         self.num_heads = num_heads
         self.dropout = dropout
         self.max_len = max_len
-        self.log_dir = log_dir
         self.start_token, self.end_token = [self.vocab_size], [self.vocab_size + 2]
         self.vocab_size += 2
         self.tokenizer = tokenizer
         self.tokenizer.vocab_size = self.vocab_size
         self.name = name
+        self.log_dir = os.path.join(log_dir, self.name)
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.model = None
 
