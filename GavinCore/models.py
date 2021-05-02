@@ -316,7 +316,7 @@ class TransformerIntegration:
             epochs: int,
             initial_epoch: int = 0,
             callbacks: typing.List = None,
-            validation_dataset: tf.data.Dataset = None):
+            validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
         with tf.profiler.experimental.Trace("Train"):
