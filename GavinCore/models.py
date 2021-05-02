@@ -58,20 +58,18 @@ class TransformerIntegration:
             Name Of Model.
     """
 
-    def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
+    def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False):
-        self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.units = units
         self.d_model = d_model
         self.num_heads = num_heads
         self.dropout = dropout
         self.max_len = max_len
-        self.start_token, self.end_token = [self.vocab_size], [self.vocab_size + 2]
-        self.vocab_size += 2
         self.tokenizer = tokenizer
-        self.tokenizer.vocab_size = self.vocab_size
+        self.start_token, self.end_token = [self.tokenizer.vocab_size], [self.tokenizer.vocab_size + 2]
+        self.vocab_size = self.tokenizer.vocab_size + 2
         self.name = name
         self.log_dir = os.path.join(base_log_dir, self.name)
         self.default_dtype = tf.float32 if not mixed else tf.float16
@@ -244,12 +242,13 @@ class TransformerIntegration:
 
     def get_hparams(self) -> typing.Dict:
         config = {
-            'VOCAB_SIZE': self.vocab_size,
             'NUM_LAYERS': self.num_layers,
             'UNITS': self.units,
             'D_MODEL': self.d_model,
             'NUM_HEADS': self.num_heads,
             'DROPOUT': self.dropout,
+            'MAX_LENGTH': self.max_len,
+            'TOKENIZER': self.tokenizer,
             'MODEL_NAME': self.name,
             'FLOAT16': True if self.default_dtype == tf.float16 else False
         }
