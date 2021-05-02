@@ -2,7 +2,9 @@ import os
 import unittest
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-from GavinCore import TransformerIntegration, tfds
+from GavinCore import TransformerIntegration, tfds, tf
+from GavinCore.datasets import create_data_objects
+from DataParsers.load_data import load_tokenized_data
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -10,7 +12,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class TestTransformer(unittest.TestCase):
     def setUp(self) -> None:
-        self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3')))
+        self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
+        self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
         self.hparams = {
             'NUM_LAYERS': 2,
             'UNITS': 512,
@@ -66,5 +69,17 @@ class TestTransformer(unittest.TestCase):
                                       base_log_dir='./models/',
                                       tokenizer=self.tokenizer,
                                       name="TestTransformer")
-        # base.fit()
+        questions, answers = load_tokenized_data(max_samples=10_000,
+                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
+                                                 tokenizer_name="Tokenizer-3",
+                                                 s_token=base.start_token,
+                                                 e_token=base.end_token, )
+        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
+        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
 
+        try:
+            base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
+                     epochs=1)
+        except Exception as e:
+            self.fail(f"Model fit failed: {e}")
