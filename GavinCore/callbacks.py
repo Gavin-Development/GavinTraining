@@ -55,20 +55,6 @@ class PredictCallback(tf.keras.callbacks.Callback):
 
         return predictions
 
-    def file_writer(self):
-        try:
-            with open(f"{self.log_dir}/logs/chat_logs.log", "w") as f:
-                for (sentence, response, epoch) in self.past_tests:
-                    f.write(f"{self.title_formatting}\nEpoch:{epoch}\nInput:{sentence}\nOutput:{response}\n")
-                f.close()
-            with open(f"{self.log_dir}/logs/model_logs.log", "w") as f:
-                for (epoch, logs) in self.past_tests:
-                    f.write(f"{self.title_formatting}\nEpoch: {epoch}\nLogs: {logs}")
-                f.close()
-        except Exception as e:
-            print(f"File writer failed because: {e}")
-        print("Wrote Files.")
-
     def on_epoch_end(self, epoch, logs=None):
         epoch += 1
         tests = self._predict()
@@ -82,10 +68,6 @@ class PredictCallback(tf.keras.callbacks.Callback):
             keys = list(logs.keys())
             print(f"Log Keys: {keys}")
         print(self.title_formatting + self.title_formatting + self.title_formatting)
-
-    def on_train_end(self, logs=None):
-        self.file_writer()
-        # Any other end jobs go here
 
 
 # Source: https://www.tensorflow.org/guide/keras/custom_callback#usage_of_selfmodel_attribute
