@@ -23,14 +23,14 @@ def tokenized_read_thread(path: typing.AnyStr, reddit_set_max: int, s_token: typ
     return lines
 
 
-def load_tokenized_data(max_samples: int, tokenizer_path: typing.AnyStr, tokenizer_name: typing.AnyStr,
+def load_tokenized_data(max_samples: int, data_path: typing.AnyStr, tokenizer_name: typing.AnyStr,
                         s_token: typing.List[int], e_token: typing.List[int]) -> typing.Tuple[typing.List[str], typing.List[str]]:
     """Load tokenized data from the data files:
-    {tokenizer_path}{tokenizer_name}.from
-    {tokenizer_path}{tokenizer_name}.to these will be configurable eventually."""
+    {data_path}{tokenizer_name}.from
+    {data_path}{tokenizer_name}.to these will be configurable eventually."""
     with ProcessPoolExecutor(2) as executor:
-        inputs_fn = executor.submit(tokenized_read_thread, f"{tokenizer_path}{tokenizer_name}.from", max_samples, s_token, e_token, 0)
-        outputs_fn = executor.submit(tokenized_read_thread, f"{tokenizer_path}{tokenizer_name}.to", max_samples, s_token, e_token, 1)
+        inputs_fn = executor.submit(tokenized_read_thread, f"{data_path}{tokenizer_name}.from", max_samples, s_token, e_token, 0)
+        outputs_fn = executor.submit(tokenized_read_thread, f"{data_path}{tokenizer_name}.to", max_samples, s_token, e_token, 1)
         executor.shutdown()
 
     return inputs_fn.result(), outputs_fn.result()
