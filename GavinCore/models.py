@@ -4,6 +4,7 @@ import typing
 from GavinCore import tf, tfds
 from GavinCore.layers import PositionalEncoding, MultiHeadAttention
 from GavinCore.preprocessing.text import preprocess_sentence
+from GavinCore.callbacks import PredictCallback
 
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
@@ -58,7 +59,7 @@ class TransformerIntegration:
     """
 
     def __init__(self, vocab_size: int, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
-                 max_len: int, log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
+                 max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False):
         self.vocab_size = vocab_size
         self.num_layers = num_layers
@@ -72,7 +73,7 @@ class TransformerIntegration:
         self.tokenizer = tokenizer
         self.tokenizer.vocab_size = self.vocab_size
         self.name = name
-        self.log_dir = os.path.join(log_dir, self.name)
+        self.log_dir = os.path.join(base_log_dir, self.name)
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.model = None
 
@@ -265,6 +266,15 @@ class TransformerIntegration:
         learning_rate = CustomSchedule(self.d_model)
         return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9)
 
+    def get_default_callbacks(self) -> typing.List:
+        return [
+            tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(self.log_dir, 'cp.ckpt'), save_weights_only=True,
+                                               verbose=1),
+            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
+            PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
+                            max_length=self.max_len,
+                            log_dir=self.log_dir)]
+
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
         y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
 
@@ -323,5 +333,6 @@ class TransformerIntegration:
         Runs the train sequence for self.model"""
         with tf.profiler.experimental.Trace("Train"):
             history = self.model.fit(training_dataset, validation_dataset=validation_dataset, epochs=epochs,
-                                     callbacks=callbacks, use_multiprocessing=True, initial_epoch=initial_epoch)
+                                     callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
+                                     use_multiprocessing=True, initial_epoch=initial_epoch)
             return history
