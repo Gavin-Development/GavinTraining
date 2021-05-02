@@ -5,4 +5,4 @@ import tensorflow_datasets as tfds
 # noinspection PyUnresolvedReferences
 import numpy as np
 # noinspection PyUnresolvedReferences
-from GavinCore.models import Transformer
+from GavinCore.models import TransformerIntegration

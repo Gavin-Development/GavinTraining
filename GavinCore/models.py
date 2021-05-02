@@ -4,8 +4,8 @@ from GavinCore.layers import PositionalEncoding, MultiHeadAttention
 from GavinCore.preprocessing.text import preprocess_sentence
 
 
-class Transformer:
-    """Transformer Model
+class TransformerIntegration:
+    """TransformerIntegration Model
 
     Based off paper: https://arxiv.org/pdf/1706.03762.pdf
     ...

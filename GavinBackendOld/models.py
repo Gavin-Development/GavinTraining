@@ -3,7 +3,7 @@ from GavinBackendOld.layers.layers import PositionalEncoding, MultiHeadAttention
 
 
 class Transformer:
-    """Transformer Model
+    """TransformerIntegration Model
 
     Based off paper: https://arxiv.org/pdf/1706.03762.pdf
     ...
