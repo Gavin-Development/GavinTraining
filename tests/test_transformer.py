@@ -35,7 +35,7 @@ class TestTransformer(unittest.TestCase):
                                           num_heads=8,
                                           dropout=0.1,
                                           max_len=52,
-                                          base_log_dir='./models/',
+                                          base_log_dir='../models/',
                                           tokenizer=self.tokenizer,
                                           name="TestTransformer")
             self.assertTrue(hasattr(base, "model"), "Model not created.")
@@ -50,7 +50,7 @@ class TestTransformer(unittest.TestCase):
                                       num_heads=8,
                                       dropout=0.1,
                                       max_len=52,
-                                      base_log_dir='./models/',
+                                      base_log_dir='../models/',
                                       tokenizer=self.tokenizer,
                                       name="TestTransformer")
         model_returned_hparams = base.get_hparams()
@@ -66,7 +66,7 @@ class TestTransformer(unittest.TestCase):
                                       num_heads=2,
                                       dropout=0.1,
                                       max_len=52,
-                                      base_log_dir='./models/',
+                                      base_log_dir='../models/',
                                       tokenizer=self.tokenizer,
                                       name="TestTransformer")
         questions, answers = load_tokenized_data(max_samples=10_000,
