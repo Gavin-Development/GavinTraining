@@ -1,4 +1,4 @@
-from GavinCore import tf
+from GavinCore.models import tf
 from typing import Dict
 
 

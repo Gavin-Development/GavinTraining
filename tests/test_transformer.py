@@ -3,7 +3,7 @@ import unittest
 import json
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-from GavinCore import TransformerIntegration, tfds, tf
+from GavinCore.models import TransformerIntegration, tfds, tf
 from GavinCore.datasets import create_data_objects
 from DataParsers.load_data import load_tokenized_data
 from pathlib import Path
