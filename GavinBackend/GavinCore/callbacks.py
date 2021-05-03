@@ -1,6 +1,7 @@
 import random
-from GavinBackendOldBackup import tf, np, tfds
-from GavinBackendOldBackup.preprocessing.text import preprocess_sentence
+import numpy as np
+from .models import tf, tfds
+from .preprocessing.text import preprocess_sentence
 from typing import List, AnyStr, Dict
 
 
