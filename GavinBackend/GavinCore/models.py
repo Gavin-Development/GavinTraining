@@ -4,9 +4,9 @@ import json
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from GavinCore.layers import PositionalEncoding, MultiHeadAttention
-from GavinCore.preprocessing.text import preprocess_sentence
-from GavinCore.callbacks import PredictCallback
+from .layers import PositionalEncoding, MultiHeadAttention
+from .preprocessing.text import preprocess_sentence
+from .callbacks import PredictCallback
 
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
