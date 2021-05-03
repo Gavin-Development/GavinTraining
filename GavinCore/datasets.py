@@ -1,4 +1,4 @@
-from GavinCore import tf
+from GavinCore.models import tf
 
 
 def create_data_objects(questions, answers, buffer_size, batch_size):
