@@ -1,5 +1,6 @@
 import os
 import typing
+import json
 
 from GavinCore import tf, tfds
 from GavinCore.layers import PositionalEncoding, MultiHeadAttention
@@ -76,7 +77,7 @@ class TransformerIntegration:
 
         # Folder stuff
         self.name = name
-        dirs_needed = ['images', 'tokenizer', 'values']
+        dirs_needed = ['images', 'tokenizer', 'config']
         self.log_dir = os.path.join(base_log_dir, self.name)
         if not os.path.exists(self.log_dir):
             os.mkdir(self.log_dir)
@@ -333,11 +334,30 @@ class TransformerIntegration:
         """Compile the model attribute to allow for training."""
         self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
 
+    def save_hparams(self):
+        # Saving config
+        hparams = self.get_hparams()
+        # Set the tokenizer to the save path not the object
+        hparams['TOKENIZER'] = os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer'))
+        # Save the tokenizer
+        self.tokenizer.save_to_file(os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer')))
+        file = open(os.path.join(self.log_dir, os.path.join('config', 'config.json')), 'w')
+        json.dump(hparams, file)
+        file.close()
+
     def fit(self, training_dataset: tf.data.Dataset, epochs: int, initial_epoch: int = 0,
             callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
         self.compile()
+        try:
+            tf.keras.utils.plot_model(self.model, to_file=os.path.join(os.path.join(self.log_dir, 'images'), 'image.png'), expand_nested=True,
+                                      show_shapes=True, show_layer_names=True, show_dtype=True)
+        except Exception as e:
+            with open(os.path.join(os.path.join(self.log_dir, 'images'), 'error.txt')) as f:
+                f.write(f"Image error: {e}")
+                print(f"Image error: {e}")
+                f.close()
         with tf.profiler.experimental.Trace("Train"):
             history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs,
                                      callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),

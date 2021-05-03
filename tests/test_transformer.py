@@ -1,5 +1,6 @@
 import os
 import unittest
+import json
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from GavinCore import TransformerIntegration, tfds, tf
@@ -15,10 +16,10 @@ class TestTransformer(unittest.TestCase):
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
         self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
         self.hparams = {
-            'NUM_LAYERS': 2,
-            'UNITS': 512,
-            'D_MODEL': 256,
-            'NUM_HEADS': 8,
+            'NUM_LAYERS': 1,
+            'UNITS': 256,
+            'D_MODEL': 128,
+            'NUM_HEADS': 2,
             'DROPOUT': 0.1,
             'MAX_LENGTH': 52,
             'TOKENIZER': self.tokenizer,
@@ -29,10 +30,10 @@ class TestTransformer(unittest.TestCase):
     def test_model_create(self):
         """Make sure the TransformerIntegration can create a tf.models.Model instance."""
         try:
-            base = TransformerIntegration(num_layers=2,
-                                          units=512,
-                                          d_model=256,
-                                          num_heads=8,
+            base = TransformerIntegration(num_layers=1,
+                                          units=256,
+                                          d_model=128,
+                                          num_heads=2,
                                           dropout=0.1,
                                           max_len=52,
                                           base_log_dir='../models/',
@@ -44,10 +45,10 @@ class TestTransformer(unittest.TestCase):
 
     def test_hparams_return(self):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
-        base = TransformerIntegration(num_layers=2,
-                                      units=512,
-                                      d_model=256,
-                                      num_heads=8,
+        base = TransformerIntegration(num_layers=1,
+                                      units=256,
+                                      d_model=128,
+                                      num_heads=2,
                                       dropout=0.1,
                                       max_len=52,
                                       base_log_dir='../models/',
@@ -58,7 +59,7 @@ class TestTransformer(unittest.TestCase):
                                                                    f"Self: {self.hparams}\n"
                                                                    f"Model: {model_returned_hparams}")
 
-    def test_model_fit(self):
+    def test_model_fit_and_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
         base = TransformerIntegration(num_layers=1,
                                       units=256,
@@ -83,3 +84,9 @@ class TestTransformer(unittest.TestCase):
                      epochs=1)
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
+        base.save_hparams()
+        self.assertTrue(os.path.exists('../models/TestTransformer/config/config.json'))
+        self.assertTrue(os.path.exists('../models/TestTransformer/tokenizer/TestTransformer_tokenizer.subwords'))
+        hparams = self.hparams
+        hparams['TOKENIZER'] = os.path.join('../models/TestTransformer', os.path.join('tokenizer', 'TestTransformer' + '_tokenizer'))
+        self.assertEqual(json.load(open('../models/TestTransformer/config/config.json')), hparams)
