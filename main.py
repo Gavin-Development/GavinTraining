@@ -1,5 +1,6 @@
 import os
-from GavinBackend.GavinCore import tf, tfds
+import tensorflow as tf
+import tensorflow_datasets as tfds
 from GavinBackend.GavinCore.models import TransformerIntegration
 from GavinBackend.GavinCore.datasets import create_data_objects
 from GavinBackend.DataParsers.load_data import load_tokenized_data
@@ -7,6 +8,7 @@ from GavinBackend.DataParsers.load_data import load_tokenized_data
 LOG_DIR = './bunchOfLogs'
 MODEL_NAME = input("Please enter Model_Name: ")
 MAX_SAMPLES = int(input("MAX_SAMPLES: "))
+BATCH_SIZE = int(input("BATCH_SIZE: "))
 BUFFER_SIZE = int(input("BUFFER_SIZE: "))
 TOKENIZER_PATH = input("TOKENIZER_PATH: ")
 EPOCHS = int(input("EPOCHS: "))
@@ -23,8 +25,6 @@ if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE)
     model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS)
 else:
-
-    BATCH_SIZE = int(input("BATCH_SIZE: "))
     MAX_LENGTH = int(input("MAX_LENGTH: "))
     NUM_LAYERS = int(input("NUM_LAYERS: "))
     D_MODEL = int(input("D_MODEL: "))
