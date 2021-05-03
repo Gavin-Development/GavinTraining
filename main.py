@@ -33,7 +33,7 @@ else:
     DROPOUT = float(input("DROPOUT: "))
     model = TransformerIntegration(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                    num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
-                                   max_len=MAX_LENGTH, tokenizer=TOKENIZER_PATH)
+                                   max_len=MAX_LENGTH, tokenizer=tokenizer)
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path="D:\\Datasets\\reddit_data\\files\\",
                                              tokenizer_name=os.path.basename(TOKENIZER_PATH),
