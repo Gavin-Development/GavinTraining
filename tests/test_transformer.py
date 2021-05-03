@@ -24,7 +24,8 @@ class TestTransformer(unittest.TestCase):
             'MAX_LENGTH': 52,
             'TOKENIZER': self.tokenizer,
             'MODEL_NAME': "TestTransformer",
-            'FLOAT16': False
+            'FLOAT16': False,
+            'EPOCHS': 0
         }
 
     def test_model_create(self):
