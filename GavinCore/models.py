@@ -1,5 +1,6 @@
 import os
 import typing
+import json
 
 from GavinCore import tf, tfds
 from GavinCore.layers import PositionalEncoding, MultiHeadAttention
@@ -61,6 +62,7 @@ class TransformerIntegration:
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False):
+        # Attributes
         self.num_layers = num_layers
         self.units = units
         self.d_model = d_model
@@ -70,11 +72,20 @@ class TransformerIntegration:
         self.tokenizer = tokenizer
         self.start_token, self.end_token = [self.tokenizer.vocab_size], [self.tokenizer.vocab_size + 2]
         self.vocab_size = self.tokenizer.vocab_size + 3
-        self.name = name
-        self.log_dir = os.path.join(base_log_dir, self.name)
         self.default_dtype = tf.float32 if not mixed else tf.float16
-        self.model = None
+        self.model = None  # This is set later
 
+        # Folder stuff
+        self.name = name
+        dirs_needed = ['images', 'tokenizer', 'config']
+        self.log_dir = os.path.join(base_log_dir, self.name)
+        if not os.path.exists(self.log_dir):
+            os.mkdir(self.log_dir)
+        for dir_needed in dirs_needed:
+            if not os.path.exists(os.path.join(self.log_dir, dir_needed)):
+                os.mkdir(os.path.join(self.log_dir, dir_needed))
+
+        # Create the tensorflow model
         self.setup_model()
 
     def setup_model(self):
@@ -323,14 +334,51 @@ class TransformerIntegration:
         """Compile the model attribute to allow for training."""
         self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
 
-    def fit(self, training_dataset: tf.data.Dataset,
-            epochs: int,
-            initial_epoch: int = 0,
-            callbacks: typing.List = None,
-            validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
+    def save_hparams(self):
+        # Saving config
+        hparams = self.get_hparams()
+        # Set the tokenizer to the save path not the object
+        hparams['TOKENIZER'] = os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer'))
+        # Save the tokenizer
+        self.tokenizer.save_to_file(os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer')))
+        file = open(os.path.join(self.log_dir, os.path.join('config', 'config.json')), 'w')
+        json.dump(hparams, file)
+        file.close()
+
+    @classmethod
+    def load_model(cls, models_path, model_name):
+        file = open(os.path.join(os.path.join(models_path, model_name), os.path.join('config', 'config.json')))
+        # Prep the hparams for loading.
+        hparams = json.load(file)
+        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(hparams['TOKENIZER'])
+        hparams['TOKENIZER'] = tokenizer
+        hparams = {k.lower(): v for k, v in hparams.items()}
+        hparams['max_len'] = hparams['max_length']
+        hparams['name'] = hparams['model_name']
+        hparams['mixed'] = hparams['float16']
+        hparams['base_log_dir'] = models_path
+        del hparams['max_length'], hparams['model_name'], hparams['float16']
+
+        base = cls(**hparams)
+        base.get_model().load_weights(os.path.join(base.log_dir, 'cp.ckpt')).expect_partial()
+        return base
+
+    def fit(self, training_dataset: tf.data.Dataset, epochs: int, initial_epoch: int = 0,
+            callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
-        self.compile()
+        try:
+            self.compile()
+        except AttributeError:
+            print("Skipping Model Compiling: Model already compiled.")
+        try:
+            tf.keras.utils.plot_model(self.model, to_file=os.path.join(os.path.join(self.log_dir, 'images'), 'image.png'), expand_nested=True,
+                                      show_shapes=True, show_layer_names=True, show_dtype=True)
+        except Exception as e:
+            with open(os.path.join(os.path.join(self.log_dir, 'images'), 'error.txt'), 'w') as f:
+                f.write(f"Image error: {e}")
+                print(f"Image error: {e}")
+                f.close()
         with tf.profiler.experimental.Trace("Train"):
             history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs,
                                      callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
