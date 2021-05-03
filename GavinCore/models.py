@@ -61,6 +61,7 @@ class TransformerIntegration:
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False):
+        # Attributes
         self.num_layers = num_layers
         self.units = units
         self.d_model = d_model
@@ -70,11 +71,20 @@ class TransformerIntegration:
         self.tokenizer = tokenizer
         self.start_token, self.end_token = [self.tokenizer.vocab_size], [self.tokenizer.vocab_size + 2]
         self.vocab_size = self.tokenizer.vocab_size + 3
-        self.name = name
-        self.log_dir = os.path.join(base_log_dir, self.name)
         self.default_dtype = tf.float32 if not mixed else tf.float16
-        self.model = None
+        self.model = None  # This is set later
 
+        # Folder stuff
+        self.name = name
+        dirs_needed = ['images', 'tokenizer', 'values']
+        self.log_dir = os.path.join(base_log_dir, self.name)
+        if not os.path.exists(self.log_dir):
+            os.mkdir(self.log_dir)
+        for dir_needed in dirs_needed:
+            if not os.path.exists(os.path.join(self.log_dir, dir_needed)):
+                os.mkdir(os.path.join(self.log_dir, dir_needed))
+
+        # Create the tensorflow model
         self.setup_model()
 
     def setup_model(self):
@@ -323,11 +333,8 @@ class TransformerIntegration:
         """Compile the model attribute to allow for training."""
         self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
 
-    def fit(self, training_dataset: tf.data.Dataset,
-            epochs: int,
-            initial_epoch: int = 0,
-            callbacks: typing.List = None,
-            validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
+    def fit(self, training_dataset: tf.data.Dataset, epochs: int, initial_epoch: int = 0,
+            callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
         self.compile()
