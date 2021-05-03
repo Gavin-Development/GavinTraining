@@ -61,7 +61,7 @@ class TransformerIntegration:
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0):
         # Attributes
         self.num_layers = num_layers
         self.units = units
@@ -84,6 +84,18 @@ class TransformerIntegration:
         for dir_needed in dirs_needed:
             if not os.path.exists(os.path.join(self.log_dir, dir_needed)):
                 os.mkdir(os.path.join(self.log_dir, dir_needed))
+        self.config = {
+            'NUM_LAYERS': self.num_layers,
+            'UNITS': self.units,
+            'D_MODEL': self.d_model,
+            'NUM_HEADS': self.num_heads,
+            'DROPOUT': self.dropout,
+            'MAX_LENGTH': self.max_len,
+            'TOKENIZER': self.tokenizer,
+            'MODEL_NAME': self.name,
+            'FLOAT16': True if self.default_dtype == tf.float16 else False,
+            'EPOCHS': epochs
+        }
 
         # Create the tensorflow model
         self.setup_model()
@@ -252,18 +264,7 @@ class TransformerIntegration:
             name=name)
 
     def get_hparams(self) -> typing.Dict:
-        config = {
-            'NUM_LAYERS': self.num_layers,
-            'UNITS': self.units,
-            'D_MODEL': self.d_model,
-            'NUM_HEADS': self.num_heads,
-            'DROPOUT': self.dropout,
-            'MAX_LENGTH': self.max_len,
-            'TOKENIZER': self.tokenizer,
-            'MODEL_NAME': self.name,
-            'FLOAT16': True if self.default_dtype == tf.float16 else False
-        }
-        return config
+        return self.config
 
     def get_model(self) -> tf.keras.Model:
         return self.model
@@ -350,6 +351,7 @@ class TransformerIntegration:
         file = open(os.path.join(os.path.join(models_path, model_name), os.path.join('config', 'config.json')))
         # Prep the hparams for loading.
         hparams = json.load(file)
+        file.close()
         tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(hparams['TOKENIZER'])
         hparams['TOKENIZER'] = tokenizer
         hparams = {k.lower(): v for k, v in hparams.items()}
@@ -363,7 +365,7 @@ class TransformerIntegration:
         base.get_model().load_weights(os.path.join(base.log_dir, 'cp.ckpt')).expect_partial()
         return base
 
-    def fit(self, training_dataset: tf.data.Dataset, epochs: int, initial_epoch: int = 0,
+    def fit(self, training_dataset: tf.data.Dataset, epochs: int,
             callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
@@ -381,7 +383,7 @@ class TransformerIntegration:
                 f.close()
         self.save_hparams()
         with tf.profiler.experimental.Trace("Train"):
-            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs,
+            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs+self.config['EPOCHS'],
                                      callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
-                                     use_multiprocessing=True, initial_epoch=initial_epoch)
+                                     use_multiprocessing=True, initial_epoch=self.config['EPOCHS'])
             return history
