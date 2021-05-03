@@ -379,6 +379,7 @@ class TransformerIntegration:
                 f.write(f"Image error: {e}")
                 print(f"Image error: {e}")
                 f.close()
+        self.save_hparams()
         with tf.profiler.experimental.Trace("Train"):
             history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs,
                                      callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
