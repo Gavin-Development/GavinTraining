@@ -1,8 +1,9 @@
 import os
 import typing
 import json
+import tensorflow as tf
+import tensorflow_datasets as tfds
 
-from GavinCore import tf, tfds
 from GavinCore.layers import PositionalEncoding, MultiHeadAttention
 from GavinCore.preprocessing.text import preprocess_sentence
 from GavinCore.callbacks import PredictCallback
