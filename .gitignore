@@ -218,3 +218,5 @@ bunchOfLogs
 test.py
 Parameters.txt
 logs-backup
+*-old.py
+*-old/
