@@ -59,7 +59,7 @@ class TestTransformer(unittest.TestCase):
                                                                    f"Self: {self.hparams}\n"
                                                                    f"Model: {model_returned_hparams}")
 
-    def test_model_fit_and_save(self):
+    def test_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
         base = TransformerIntegration(num_layers=1,
                                       units=256,
@@ -90,3 +90,21 @@ class TestTransformer(unittest.TestCase):
         hparams = self.hparams
         hparams['TOKENIZER'] = os.path.join('../models/TestTransformer', os.path.join('tokenizer', 'TestTransformer' + '_tokenizer'))
         self.assertEqual(json.load(open('../models/TestTransformer/config/config.json')), hparams)
+
+    def test_model_load_fit(self):
+        base = TransformerIntegration.load_model('../models/', 'TestTransformer')
+
+        questions, answers = load_tokenized_data(max_samples=10_000,
+                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
+                                                 tokenizer_name="Tokenizer-3",
+                                                 s_token=base.start_token,
+                                                 e_token=base.end_token, )
+        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
+        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+
+        try:
+            base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
+                     epochs=1)
+        except Exception as e:
+            self.fail(f"Model fit failed: {e}")

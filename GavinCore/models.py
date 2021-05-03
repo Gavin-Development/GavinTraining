@@ -345,16 +345,37 @@ class TransformerIntegration:
         json.dump(hparams, file)
         file.close()
 
+    @classmethod
+    def load_model(cls, models_path, model_name):
+        file = open(os.path.join(os.path.join(models_path, model_name), os.path.join('config', 'config.json')))
+        # Prep the hparams for loading.
+        hparams = json.load(file)
+        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(hparams['TOKENIZER'])
+        hparams['TOKENIZER'] = tokenizer
+        hparams = {k.lower(): v for k, v in hparams.items()}
+        hparams['max_len'] = hparams['max_length']
+        hparams['name'] = hparams['model_name']
+        hparams['mixed'] = hparams['float16']
+        hparams['base_log_dir'] = models_path
+        del hparams['max_length'], hparams['model_name'], hparams['float16']
+
+        base = cls(**hparams)
+        base.get_model().load_weights(os.path.join(base.log_dir, 'cp.ckpt')).expect_partial()
+        return base
+
     def fit(self, training_dataset: tf.data.Dataset, epochs: int, initial_epoch: int = 0,
             callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
-        self.compile()
+        try:
+            self.compile()
+        except AttributeError:
+            print("Skipping Model Compiling: Model already compiled.")
         try:
             tf.keras.utils.plot_model(self.model, to_file=os.path.join(os.path.join(self.log_dir, 'images'), 'image.png'), expand_nested=True,
                                       show_shapes=True, show_layer_names=True, show_dtype=True)
         except Exception as e:
-            with open(os.path.join(os.path.join(self.log_dir, 'images'), 'error.txt')) as f:
+            with open(os.path.join(os.path.join(self.log_dir, 'images'), 'error.txt'), 'w') as f:
                 f.write(f"Image error: {e}")
                 print(f"Image error: {e}")
                 f.close()
