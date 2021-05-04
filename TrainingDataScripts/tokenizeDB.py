@@ -18,7 +18,7 @@ if not os.path.exists('./temp/'):
 
 databases = glob.glob("D:/Datasets/reddit_data/databases/*.db")
 databases = [os.path.basename(database) for database in databases]
-subword_file = "Tokenizer-1Million"  # input("Please enter the name of the subword file: ")
+subword_file = input("Please enter the name of the subword file: ")
 subword_file_path = f"../{subword_file}"
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(subword_file_path)
 print(f"Databases to process: {len(databases)}\nVocab Size on the Tokenizer: {tokenizer.vocab_size}")
@@ -27,7 +27,7 @@ for database in databases:
     try:
         print(f"Starting Work on: {database}")
         limit = 3_000_000
-        shutil.move('D:/Datasets/reddit_data/databases/{}'.format(database), './temp/{}'.format(database))
+        shutil.copy('D:/Datasets/reddit_data/databases/{}'.format(database), './temp/{}'.format(database))
         connection = sqlite3.connect('./temp/{}'.format(database))
         sql = "CREATE TABLE IF NOT EXISTS tokenized_comment_data_new (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id TEXT, comment_id TEXT, parent_tokenized TEXT, comment_tokenized TEXT, subreddit TEXT, unix INT, score INT, tokenizer_name TEXT)"
         cursor = connection.cursor()
@@ -71,7 +71,7 @@ for database in databases:
         connection.commit()
         print(f"Finished Vacuum on: {database}")
         connection.close()
-        shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
+        shutil.copy('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
         print(f"Finished Work on: {database}")
     except sqlite3.IntegrityError or sqlite3.OperationalError as e:
         print(f"Error: {e} Run: {runs}")
@@ -79,4 +79,4 @@ for database in databases:
             connection.close()
         except Exception as e:
             print(f"Error: {e}")
-        shutil.move('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
+        shutil.copy('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))

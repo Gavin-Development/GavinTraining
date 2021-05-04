@@ -9,7 +9,7 @@ import sqlite3
 timeframes = glob.glob("D:/Datasets/reddit_data/databases/*.db")
 timeframes = [os.path.basename(timeframe) for timeframe in timeframes]
 total_rows = 0
-sql = """DROP TABLE tokenized_comment_data;"""
+sql = """DROP TABLE tokenized_comment_data_new;"""
 for timeframe in timeframes:
     connection = sqlite3.connect('D:/Datasets/reddit_data/databases/{}'.format(timeframe))
     try:
