@@ -353,7 +353,10 @@ class TransformerIntegration:
         # Prep the hparams for loading.
         hparams = json.load(file)
         file.close()
-        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(hparams['TOKENIZER'])
+        try:
+            tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(hparams['TOKENIZER'])
+        except tf.python.framework.errors_impl.NotFoundError:
+            tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(os.path.join(models_path, os.path.join(model_name, f'tokenizer/{model_name}_tokenizer')))
         hparams['TOKENIZER'] = tokenizer
         hparams = {k.lower(): v for k, v in hparams.items()}
         hparams['max_len'] = hparams['max_length']
