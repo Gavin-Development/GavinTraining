@@ -328,7 +328,7 @@ class TransformerIntegration:
     def predict(self, sentence: str) -> typing.AnyStr:
         prediction = self.evaluate(sentence)
 
-        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.vocab_size])
+        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.tokenizer.vocab_size])
 
         return predicated_sentence
 
