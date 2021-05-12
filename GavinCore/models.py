@@ -71,8 +71,8 @@ class TransformerIntegration:
         self.dropout = dropout
         self.max_len = max_len
         self.tokenizer = tokenizer
-        self.start_token, self.end_token = [self.tokenizer.vocab_size], [self.tokenizer.vocab_size + 2]
-        self.vocab_size = self.tokenizer.vocab_size + 3
+        self.start_token, self.end_token = [self.tokenizer.vocab_size + 1], [self.tokenizer.vocab_size + 1]
+        self.vocab_size = self.tokenizer.vocab_size + 2
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.model = None  # This is set later
 
