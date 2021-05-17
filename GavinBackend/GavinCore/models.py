@@ -71,8 +71,8 @@ class TransformerIntegration:
         self.dropout = dropout
         self.max_len = max_len
         self.tokenizer = tokenizer
-        self.start_token, self.end_token = [self.tokenizer.vocab_size], [self.tokenizer.vocab_size + 2]
-        self.vocab_size = self.tokenizer.vocab_size + 3
+        self.start_token, self.end_token = [self.tokenizer.vocab_size + 1], [self.tokenizer.vocab_size + 1]
+        self.vocab_size = self.tokenizer.vocab_size + 2
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.model = None  # This is set later
 
@@ -328,7 +328,7 @@ class TransformerIntegration:
     def predict(self, sentence: str) -> typing.AnyStr:
         prediction = self.evaluate(sentence)
 
-        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.vocab_size])
+        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.tokenizer.vocab_size])
 
         return predicated_sentence
 
@@ -353,7 +353,7 @@ class TransformerIntegration:
         # Prep the hparams for loading.
         hparams = json.load(file)
         file.close()
-        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(hparams['TOKENIZER'])
+        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(os.path.join(models_path, os.path.join(model_name, f'tokenizer/{model_name}_tokenizer')))
         hparams['TOKENIZER'] = tokenizer
         hparams = {k.lower(): v for k, v in hparams.items()}
         hparams['max_len'] = hparams['max_length']
