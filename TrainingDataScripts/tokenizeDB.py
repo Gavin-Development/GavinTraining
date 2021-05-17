@@ -73,6 +73,7 @@ for database in databases:
         connection.close()
         shutil.copy('./temp/{}'.format(database), 'D:/Datasets/reddit_data/databases/{}'.format(database))
         print(f"Finished Work on: {database}")
+        os.remove('./temp/{}'.format(database))
     except sqlite3.IntegrityError or sqlite3.OperationalError as e:
         print(f"Error: {e} Run: {runs}")
         try:
