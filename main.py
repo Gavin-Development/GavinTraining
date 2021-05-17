@@ -1,9 +1,8 @@
+import os
+
+os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 if __name__ == "__main__":
-    import os
-    os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
-    import tensorflow as tf
-    import tensorflow_datasets as tfds
-    from GavinBackend.GavinCore.models import TransformerIntegration
+    from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds
     from GavinBackend.GavinCore.datasets import create_data_objects
     from GavinBackend.DataParsers.load_data import load_tokenized_data
 
