@@ -1,6 +1,7 @@
 import os
 import unittest
 import json
+import shutil
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from GavinCore.models import TransformerIntegration, tfds, tf
@@ -41,6 +42,7 @@ class TestTransformer(unittest.TestCase):
                                           tokenizer=self.tokenizer,
                                           name="TestTransformer")
             self.assertTrue(hasattr(base, "model"), "Model not created.")
+            shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
 
@@ -56,6 +58,7 @@ class TestTransformer(unittest.TestCase):
                                       tokenizer=self.tokenizer,
                                       name="TestTransformer")
         model_returned_hparams = base.get_hparams()
+        shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
         self.assertDictEqual(model_returned_hparams, self.hparams, f"Model Parameter mismatch.\n"
                                                                    f"Self: {self.hparams}\n"
                                                                    f"Model: {model_returned_hparams}")
@@ -90,6 +93,7 @@ class TestTransformer(unittest.TestCase):
         self.assertTrue(os.path.exists('../models/TestTransformer/tokenizer/TestTransformer_tokenizer.subwords'))
         hparams = self.hparams
         hparams['TOKENIZER'] = os.path.join('../models/TestTransformer', os.path.join('tokenizer', 'TestTransformer' + '_tokenizer'))
+        hparams['EPOCHS'] = hparams['EPOCHS'] + 1
         self.assertEqual(json.load(open('../models/TestTransformer/config/config.json')), hparams)
 
     def test_model_load_fit(self):
