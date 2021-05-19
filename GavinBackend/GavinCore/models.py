@@ -62,7 +62,7 @@ class TransformerIntegration:
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
         # Attributes
         self.num_layers = num_layers
         self.units = units
@@ -97,6 +97,9 @@ class TransformerIntegration:
             'FLOAT16': True if self.default_dtype == tf.float16 else False,
             'EPOCHS': epochs
         }
+        if metadata is None:
+            metadata = {}
+        self.metadata = metadata
 
         # Create the tensorflow model
         self.setup_model()
@@ -270,6 +273,9 @@ class TransformerIntegration:
     def get_model(self) -> tf.keras.Model:
         return self.model
 
+    def get_metadata(self) -> typing.Dict:
+        return self.metadata
+
     def get_tokens(self) -> typing.Tuple[typing.List, typing.List]:
         """Return Start and End Tokens."""
         return self.start_token, self.end_token
@@ -339,12 +345,16 @@ class TransformerIntegration:
     def save_hparams(self):
         # Saving config
         hparams = self.get_hparams()
+        metadata = self.get_metadata()
         # Set the tokenizer to the save path not the object
         hparams['TOKENIZER'] = os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer'))
         # Save the tokenizer
         self.tokenizer.save_to_file(os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer')))
         file = open(os.path.join(self.log_dir, os.path.join('config', 'config.json')), 'w')
         json.dump(hparams, file)
+        file.close()
+        file = open(os.path.join(self.log_dir, os.path.join('config', 'metadata.json')), 'w')
+        json.dump(metadata, file)
         file.close()
 
     @classmethod
