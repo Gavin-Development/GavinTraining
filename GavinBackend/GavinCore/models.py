@@ -392,9 +392,11 @@ class TransformerIntegration:
                 f.write(f"Image error: {e}")
                 print(f"Image error: {e}")
                 f.close()
+        initial_epoch = self.config['EPOCHS']
+        self.config['EPOCHS'] = self.config['EPOCHS'] + epochs
         self.save_hparams()
         with tf.profiler.experimental.Trace("Train"):
-            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=epochs+self.config['EPOCHS'],
+            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=self.config['EPOCHS'],
                                      callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
-                                     use_multiprocessing=True, initial_epoch=self.config['EPOCHS'])
+                                     use_multiprocessing=True, initial_epoch=initial_epoch)
             return history
