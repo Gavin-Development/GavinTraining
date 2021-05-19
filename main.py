@@ -1,4 +1,5 @@
 import os
+import json
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 if __name__ == "__main__":
@@ -8,9 +9,15 @@ if __name__ == "__main__":
 
     LOG_DIR = './bunchOfLogs'
     MODEL_NAME = input("Please enter Model_Name: ")
-    MAX_SAMPLES = int(input("MAX_SAMPLES: "))
-    BATCH_SIZE = int(input("BATCH_SIZE: "))
-    BUFFER_SIZE = int(input("BUFFER_SIZE: "))
+    if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
+        metadata = json.load(open(os.path.join(LOG_DIR, os.path.join(MODEL_NAME, os.path.join('config/', 'metadata.json')))))
+        MAX_SAMPLES = metadata['MAX_SAMPLES']
+        BATCH_SIZE = metadata['BATCH_SIZE']
+        BUFFER_SIZE = metadata['BUFFER_SIZE']
+    else:
+        MAX_SAMPLES = int(input("MAX_SAMPLES: "))
+        BATCH_SIZE = int(input("BATCH_SIZE: "))
+        BUFFER_SIZE = int(input("BUFFER_SIZE: "))
     TOKENIZER_PATH = input("TOKENIZER_PATH: ")
     EPOCHS = int(input("EPOCHS: "))
     tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
@@ -32,6 +39,8 @@ if __name__ == "__main__":
         NUM_HEADS = int(input("NUM_HEADS: "))
         UNITS = int(input("UNITS: "))
         DROPOUT = float(input("DROPOUT: "))
+        metadata = {"MAX_SAMPLES": MAX_SAMPLES, "BATCH_SIZE": BATCH_SIZE, "BUFFER_SIZE": BUFFER_SIZE}
+        json.dump(metadata, open(os.path.join(LOG_DIR, os.path.join(MODEL_NAME, os.path.join('config/', 'metadata.json'))), 'w'))
         model = TransformerIntegration(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                        num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                        max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME)
