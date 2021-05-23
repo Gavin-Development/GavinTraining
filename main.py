@@ -40,7 +40,6 @@ if __name__ == "__main__":
         UNITS = int(input("UNITS: "))
         DROPOUT = float(input("DROPOUT: "))
         metadata = {"MAX_SAMPLES": MAX_SAMPLES, "BATCH_SIZE": BATCH_SIZE, "BUFFER_SIZE": BUFFER_SIZE}
-        json.dump(metadata, open(os.path.join(LOG_DIR, os.path.join(MODEL_NAME, os.path.join('config/', 'metadata.json'))), 'w'))
         model = TransformerIntegration(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                        num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                        max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME)
@@ -52,4 +51,9 @@ if __name__ == "__main__":
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE)
+
+        fp = open(os.path.join(LOG_DIR, os.path.join(MODEL_NAME, os.path.join('config/', 'metadata.json'))), 'w')
+        json.dump(metadata, fp)
+        fp.close()
+
         model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS)
