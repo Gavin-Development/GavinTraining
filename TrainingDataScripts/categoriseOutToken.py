@@ -81,10 +81,14 @@ if __name__ == "__main__":
         shutil.rmtree(TEMP_DIR)
     except FileNotFoundError or OSError:
         pass
-    try:
-        sort_out(timeframes)
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        print("Clearing up.")
-        shutil.rmtree(TEMP_DIR)
+    finished = False
+    while not finished:
+        try:
+            sort_out(timeframes)
+        except Exception as e:
+            print(f"Error: {e}")
+            continue
+        finally:
+            print("Clearing up.")
+            shutil.rmtree(TEMP_DIR)
+        finished = True
