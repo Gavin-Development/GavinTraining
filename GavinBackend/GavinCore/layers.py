@@ -1,3 +1,5 @@
+from tensorflow.python.keras.utils import tf_utils
+
 from .models import tf
 from typing import Dict
 
@@ -122,3 +124,18 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     def get_config(self):
         cfg = super().get_config()
         return cfg
+
+
+class GPUEnabledEmbedding(tf.keras.layers.Embedding):
+    """Embedding Layers are forced to run on CPUs which seriously
+    hurts training performance this fixes that issue."""
+    @tf_utils.shape_type_conversion
+    def build(self, input_shape):
+        self.embeddings = self.add_weight(
+            shape=(self.input_dim, self.output_dim),
+            initializer=self.embeddings_initializer,
+            name="embeddings",
+            regularizer=self.embeddings_regularizer,
+            constraint=self.embeddings_constraint,
+        )
+        self.built = True
