@@ -4,7 +4,7 @@ import json
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from .layers import PositionalEncoding, MultiHeadAttention
+from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding
 from .preprocessing.text import preprocess_sentence
 from .callbacks import PredictCallback
 
@@ -184,7 +184,7 @@ class TransformerIntegration:
         inputs = tf.keras.Input(shape=(None,), name="inputs")
         padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
 
-        embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
+        embeddings = GPUEnabledEmbedding(self.vocab_size, self.d_model)(inputs)
         embeddings *= tf.math.sqrt(tf.cast(self.d_model, self.default_dtype))
         embeddings = tf.cast(embeddings, tf.float32)
         embeddings = PositionalEncoding(self.vocab_size, self.d_model)(embeddings)
@@ -251,7 +251,7 @@ class TransformerIntegration:
             shape=(1, None, None), name='look_ahead_mask')
         padding_mask = tf.keras.Input(shape=(1, 1, None), name='padding_mask')
 
-        embeddings = tf.keras.layers.Embedding(self.vocab_size, self.d_model)(inputs)
+        embeddings = GPUEnabledEmbedding(self.vocab_size, self.d_model)(inputs)
         embeddings *= tf.math.sqrt(tf.cast(self.d_model, self.default_dtype))
         embeddings = tf.cast(embeddings, tf.float32)
         embeddings = PositionalEncoding(self.vocab_size, self.d_model)(embeddings)
