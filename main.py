@@ -53,8 +53,4 @@ if __name__ == "__main__":
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE)
 
-        fp = open(os.path.join(LOG_DIR, os.path.join(MODEL_NAME, os.path.join('config/', 'metadata.json'))), 'w')
-        json.dump(metadata, fp)
-        fp.close()
-
         model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS)
