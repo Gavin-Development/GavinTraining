@@ -7,6 +7,7 @@ import tensorflow_datasets as tfds
 from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding
 from .preprocessing.text import preprocess_sentence
 from .callbacks import PredictCallback
+from tensorboard.plugins import projector
 
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
@@ -356,6 +357,19 @@ class TransformerIntegration:
         file = open(os.path.join(self.log_dir, os.path.join('config', 'metadata.json')), 'w')
         json.dump(metadata, file)
         file.close()
+
+        # Writing Projector metadata for viewing in tensorboard
+        with open(os.path.join(self.log_dir, 'metadata.tsv'), "w", encoding="utf-8") as f:
+            for subwords in self.tokenizer.subwords:
+                f.write(f"{subwords}\n")
+            for unknown in range(1, self.tokenizer.vocab_size - len(self.tokenizer.subwords)):
+                f.write(f"unknown #{unknown}\n")
+
+        projector_config = projector.ProjectorConfig()
+        embedding = projector_config.embeddings.add()
+
+        embedding.metadata_path = 'metadata.tsv'
+        projector.visualize_embeddings(self.log_dir, projector_config)
 
     @classmethod
     def load_model(cls, models_path, model_name):
