@@ -46,6 +46,21 @@ class TestTransformer(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
 
+    def test_model_projector_metadata(self):
+        try:
+            base = TransformerIntegration(num_layers=1,
+                                          units=256,
+                                          d_model=128,
+                                          num_heads=2,
+                                          dropout=0.1,
+                                          max_len=52,
+                                          base_log_dir='../models/',
+                                          tokenizer=self.tokenizer,
+                                          name="TestTransformer")
+            self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
+        except Exception as e:
+            self.fail(f"Model creation failed: {e}")
+
     def test_hparams_return(self):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
         base = TransformerIntegration(num_layers=1,
