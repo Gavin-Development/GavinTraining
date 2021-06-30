@@ -3,5 +3,5 @@ tensorflow-datasets==4.2.0
 numpy==1.19.5
 wheel==0.36.2
 tqdm==4.60.0
-unittest2=1.1.0
+unittest2==1.1.0
 tensorboard==2.5.0
