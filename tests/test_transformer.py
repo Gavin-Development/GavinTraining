@@ -29,7 +29,7 @@ class TestTransformer(unittest.TestCase):
             'EPOCHS': 0
         }
 
-    def test_model_create(self):
+    def test_001_model_create(self):
         """Make sure the TransformerIntegration can create a tf.models.Model instance."""
         try:
             base = TransformerIntegration(num_layers=1,
@@ -46,22 +46,7 @@ class TestTransformer(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
 
-    def test_model_projector_metadata(self):
-        try:
-            base = TransformerIntegration(num_layers=1,
-                                          units=256,
-                                          d_model=128,
-                                          num_heads=2,
-                                          dropout=0.1,
-                                          max_len=52,
-                                          base_log_dir='../models/',
-                                          tokenizer=self.tokenizer,
-                                          name="TestTransformer")
-            self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
-        except Exception as e:
-            self.fail(f"Model creation failed: {e}")
-
-    def test_hparams_return(self):
+    def test_002_hparams_return(self):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
         base = TransformerIntegration(num_layers=1,
                                       units=256,
@@ -78,7 +63,7 @@ class TestTransformer(unittest.TestCase):
                                                                    f"Self: {self.hparams}\n"
                                                                    f"Model: {model_returned_hparams}")
 
-    def test_model_fit_save(self):
+    def test_003_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
         base = TransformerIntegration(num_layers=1,
                                       units=256,
@@ -111,7 +96,7 @@ class TestTransformer(unittest.TestCase):
         hparams['EPOCHS'] = hparams['EPOCHS'] + 1
         self.assertEqual(json.load(open('../models/TestTransformer/config/config.json')), hparams)
 
-    def test_model_load_fit(self):
+    def test_004_model_load_fit(self):
         base = TransformerIntegration.load_model('../models/', 'TestTransformer')
 
         questions, answers = load_tokenized_data(max_samples=10_000,
@@ -128,3 +113,18 @@ class TestTransformer(unittest.TestCase):
                      epochs=1)
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
+
+    def test_005_model_projector_metadata(self):
+        try:
+            base = TransformerIntegration(num_layers=1,
+                                          units=256,
+                                          d_model=128,
+                                          num_heads=2,
+                                          dropout=0.1,
+                                          max_len=52,
+                                          base_log_dir='../models/',
+                                          tokenizer=self.tokenizer,
+                                          name="TestTransformer")
+            self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
+        except Exception as e:
+            self.fail(f"Model creation failed: {e}")
