@@ -1,0 +1,3 @@
+[submodule "GavinBackend"]
+	path = GavinBackend
+	url = https://github.com/Scot-Survivor/GavinBackend.git
