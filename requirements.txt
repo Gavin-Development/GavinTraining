@@ -1,4 +1,4 @@
-tensorflow==2.4.1
+tensorflow==2.5.0
 tensorflow-datasets==4.2.0
 numpy==1.19.5
 wheel=0.36.2
