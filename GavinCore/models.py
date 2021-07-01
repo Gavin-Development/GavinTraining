@@ -1,3 +1,4 @@
+import abc
 import os
 import typing
 import json
@@ -36,7 +37,225 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         return config
 
 
-class TransformerIntegration:
+class TransformerAbstract(abc.ABC):
+    @abc.abstractmethod
+    def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
+                 max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+        self.num_layers = num_layers
+        self.units = units
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.dropout = dropout
+        self.max_len = max_len
+        self.tokenizer = tokenizer
+        self.start_token, self.end_token = [self.tokenizer.vocab_size + 1], [self.tokenizer.vocab_size + 1]
+        self.vocab_size = self.tokenizer.vocab_size + 2
+        self.default_dtype = tf.float32 if not mixed else tf.float16
+        self.model = None
+
+        self.name = name
+        self.log_dir = os.path.join(base_log_dir, self.name)
+
+        self.config = {
+            'NUM_LAYERS': self.num_layers,
+            'UNITS': self.units,
+            'D_MODEL': self.d_model,
+            'NUM_HEADS': self.num_heads,
+            'DROPOUT': self.dropout,
+            'MAX_LENGTH': self.max_len,
+            'TOKENIZER': self.tokenizer,
+            'MODEL_NAME': self.name,
+            'FLOAT16': True if self.default_dtype == tf.float16 else False,
+            'EPOCHS': epochs
+        }
+        if metadata is None:
+            metadata = {}
+        self.metadata = metadata
+
+        self.setup_model()
+
+    @abc.abstractmethod
+    def setup_model(self):
+        raise NotImplementedError("Method not implemented.")
+
+    @abc.abstractmethod
+    def encoder_layer(self, name: str):
+        raise NotImplementedError("Method not implemented.")
+
+    @staticmethod
+    @abc.abstractmethod
+    def create_padding_mask(x):
+        raise NotImplementedError("Method not implemented.")
+
+    @abc.abstractmethod
+    def create_look_ahead_mask(self, x) -> tf.Tensor:
+        raise NotImplementedError("Method not implemented.")
+
+    @abc.abstractmethod
+    def encoder(self, name: str) -> tf.keras.Model:
+        raise NotImplementedError("Method not implemented.")
+
+    @abc.abstractmethod
+    def decoder_layer(self, name: str) -> tf.keras.Model:
+        raise NotImplementedError("Method not implemented.")
+
+    @abc.abstractmethod
+    def decoder(self, name: str) -> tf.keras.Model:
+        raise NotImplementedError("Method not implemented.")
+
+    def get_hparams(self) -> typing.Dict:
+        return self.config
+
+    def get_model(self) -> tf.keras.Model:
+        return self.model
+
+    def get_metadata(self) -> typing.Dict:
+        return self.metadata
+
+    def get_tokens(self) -> typing.Tuple[typing.List, typing.List]:
+        """Return Start and End Tokens."""
+        return self.start_token, self.end_token
+
+    def get_optimizer(self) -> tf.keras.optimizers.Adam:
+        learning_rate = CustomSchedule(self.d_model)
+        return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9)
+
+    def get_default_callbacks(self) -> typing.List:
+        return [
+            tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(self.log_dir, 'cp.ckpt'), save_weights_only=True,
+                                               verbose=1),
+            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
+            PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
+                            max_length=self.max_len,
+                            log_dir=self.log_dir)]
+
+    def loss_function(self, y_true, y_pred) -> tf.Tensor:
+        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
+
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(
+            from_logits=True, reduction='none')(y_true, y_pred)
+
+        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+        loss = tf.multiply(loss, mask)
+
+        return tf.reduce_mean(loss)
+
+    def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
+        sentence = preprocess_sentence(sentence)
+
+        sentence = tf.expand_dims(self.start_token + self.tokenizer.encode(sentence) + self.end_token, axis=0)
+
+        output = tf.expand_dims(self.start_token, 0)
+
+        for i in range(self.max_len):
+            predictions = self.model(inputs=[sentence, output], training=False)
+
+            # select the last word from the seq length dimension
+            predictions = predictions[:, -1:, :]
+            predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+
+            if tf.equal(predicted_id, self.end_token[0]):
+                break
+
+            # concatenated the predicted_id to the output which is given the decoder
+            # as its input
+            output = tf.concat([output, predicted_id], axis=-1)
+        return tf.squeeze(output, axis=0)
+
+    def accuracy(self, y_true, y_pred) -> tf.Tensor:
+        # ensure labels have shape (batch_size, MAX_LENGTH - 1)
+        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
+        return tf.metrics.SparseCategoricalAccuracy()(y_true, y_pred)
+
+    def predict(self, sentence: str) -> typing.AnyStr:
+        prediction = self.evaluate(sentence)
+
+        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.tokenizer.vocab_size])
+
+        return predicated_sentence
+
+    def compile(self) -> None:
+        """Compile the model attribute to allow for training."""
+        self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
+
+    def save_hparams(self):
+        # Saving config
+        hparams = self.get_hparams()
+        metadata = self.get_metadata()
+        # Set the tokenizer to the save path not the object
+        hparams['TOKENIZER'] = os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer'))
+        # Save the tokenizer
+        self.tokenizer.save_to_file(os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer')))
+        file = open(os.path.join(self.log_dir, os.path.join('config', 'config.json')), 'w')
+        json.dump(hparams, file)
+        file.close()
+        file = open(os.path.join(self.log_dir, os.path.join('config', 'metadata.json')), 'w')
+        json.dump(metadata, file)
+        file.close()
+
+        # Writing Projector metadata for viewing in tensorboard
+        with open(os.path.join(self.log_dir, 'metadata.tsv'), "w", encoding="utf-8") as f:
+            for subwords in self.tokenizer.subwords:
+                f.write(f"{subwords}\n")
+            for unknown in range(1, self.tokenizer.vocab_size - len(self.tokenizer.subwords)):
+                f.write(f"unknown #{unknown}\n")
+
+        projector_config = projector.ProjectorConfig()
+        embedding = projector_config.embeddings.add()
+
+        embedding.metadata_path = 'metadata.tsv'
+        projector.visualize_embeddings(self.log_dir, projector_config)
+
+    @classmethod
+    def load_model(cls, models_path, model_name):
+        file = open(os.path.join(os.path.join(models_path, model_name), os.path.join('config', 'config.json')))
+        # Prep the hparams for loading.
+        hparams = json.load(file)
+        file.close()
+        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(
+            os.path.join(models_path, os.path.join(model_name, f'tokenizer/{model_name}_tokenizer')))
+        hparams['TOKENIZER'] = tokenizer
+        hparams = {k.lower(): v for k, v in hparams.items()}
+        hparams['max_len'] = hparams['max_length']
+        hparams['name'] = hparams['model_name']
+        hparams['mixed'] = hparams['float16']
+        hparams['base_log_dir'] = models_path
+        del hparams['max_length'], hparams['model_name'], hparams['float16']
+
+        base = cls(**hparams)
+        base.get_model().load_weights(os.path.join(base.log_dir, 'cp.ckpt')).expect_partial()
+        return base
+
+    def fit(self, training_dataset: tf.data.Dataset, epochs: int,
+            callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
+        """Call .fit() on the model attribute.
+        Runs the train sequence for self.model"""
+        try:
+            self.compile()
+        except AttributeError:
+            print("Skipping Model Compiling: Model already compiled.")
+        try:
+            tf.keras.utils.plot_model(self.model,
+                                      to_file=os.path.join(os.path.join(self.log_dir, 'images'), 'image.png'),
+                                      expand_nested=True,
+                                      show_shapes=True, show_layer_names=True, show_dtype=True)
+        except Exception as e:
+            with open(os.path.join(os.path.join(self.log_dir, 'images'), 'error.txt'), 'w') as f:
+                f.write(f"Image error: {e}")
+                print(f"Image error: {e}")
+                f.close()
+        initial_epoch = self.config['EPOCHS']
+        self.config['EPOCHS'] = self.config['EPOCHS'] + epochs
+        self.save_hparams()
+        with tf.profiler.experimental.Trace("Train"):
+            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=self.config['EPOCHS'],
+                                     callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
+                                     use_multiprocessing=True, initial_epoch=initial_epoch)
+            return history
+
+
+class TransformerIntegration(TransformerAbstract):
     """TransformerIntegration Model
 
     Based off paper: https://arxiv.org/pdf/1706.03762.pdf
@@ -268,149 +487,7 @@ class TransformerIntegration:
             outputs=outputs,
             name=name)
 
-    def get_hparams(self) -> typing.Dict:
-        return self.config
 
-    def get_model(self) -> tf.keras.Model:
-        return self.model
-
-    def get_metadata(self) -> typing.Dict:
-        return self.metadata
-
-    def get_tokens(self) -> typing.Tuple[typing.List, typing.List]:
-        """Return Start and End Tokens."""
-        return self.start_token, self.end_token
-
-    def get_optimizer(self) -> tf.keras.optimizers.Adam:
-        learning_rate = CustomSchedule(self.d_model)
-        return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9)
-
-    def get_default_callbacks(self) -> typing.List:
-        return [
-            tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(self.log_dir, 'cp.ckpt'), save_weights_only=True,
-                                               verbose=1),
-            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
-            PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
-                            max_length=self.max_len,
-                            log_dir=self.log_dir)]
-
-    def loss_function(self, y_true, y_pred) -> tf.Tensor:
-        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
-
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(
-            from_logits=True, reduction='none')(y_true, y_pred)
-
-        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
-        loss = tf.multiply(loss, mask)
-
-        return tf.reduce_mean(loss)
-
-    def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
-        sentence = preprocess_sentence(sentence)
-
-        sentence = tf.expand_dims(self.start_token + self.tokenizer.encode(sentence) + self.end_token, axis=0)
-
-        output = tf.expand_dims(self.start_token, 0)
-
-        for i in range(self.max_len):
-            predictions = self.model(inputs=[sentence, output], training=False)
-
-            # select the last word from the seq length dimension
-            predictions = predictions[:, -1:, :]
-            predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
-
-            if tf.equal(predicted_id, self.end_token[0]):
-                break
-
-            # concatenated the predicted_id to the output which is given the decoder
-            # as its input
-            output = tf.concat([output, predicted_id], axis=-1)
-        return tf.squeeze(output, axis=0)
-
-    def accuracy(self, y_true, y_pred) -> tf.Tensor:
-        # ensure labels have shape (batch_size, MAX_LENGTH - 1)
-        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
-        return tf.metrics.SparseCategoricalAccuracy()(y_true, y_pred)
-
-    def predict(self, sentence: str) -> typing.AnyStr:
-        prediction = self.evaluate(sentence)
-
-        predicated_sentence = self.tokenizer.decode([i for i in prediction if i < self.tokenizer.vocab_size])
-
-        return predicated_sentence
-
-    def compile(self) -> None:
-        """Compile the model attribute to allow for training."""
-        self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
-
-    def save_hparams(self):
-        # Saving config
-        hparams = self.get_hparams()
-        metadata = self.get_metadata()
-        # Set the tokenizer to the save path not the object
-        hparams['TOKENIZER'] = os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer'))
-        # Save the tokenizer
-        self.tokenizer.save_to_file(os.path.join(self.log_dir, os.path.join('tokenizer', self.name + '_tokenizer')))
-        file = open(os.path.join(self.log_dir, os.path.join('config', 'config.json')), 'w')
-        json.dump(hparams, file)
-        file.close()
-        file = open(os.path.join(self.log_dir, os.path.join('config', 'metadata.json')), 'w')
-        json.dump(metadata, file)
-        file.close()
-
-        # Writing Projector metadata for viewing in tensorboard
-        with open(os.path.join(self.log_dir, 'metadata.tsv'), "w", encoding="utf-8") as f:
-            for subwords in self.tokenizer.subwords:
-                f.write(f"{subwords}\n")
-            for unknown in range(1, self.tokenizer.vocab_size - len(self.tokenizer.subwords)):
-                f.write(f"unknown #{unknown}\n")
-
-        projector_config = projector.ProjectorConfig()
-        embedding = projector_config.embeddings.add()
-
-        embedding.metadata_path = 'metadata.tsv'
-        projector.visualize_embeddings(self.log_dir, projector_config)
-
-    @classmethod
-    def load_model(cls, models_path, model_name):
-        file = open(os.path.join(os.path.join(models_path, model_name), os.path.join('config', 'config.json')))
-        # Prep the hparams for loading.
-        hparams = json.load(file)
-        file.close()
-        tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(os.path.join(models_path, os.path.join(model_name, f'tokenizer/{model_name}_tokenizer')))
-        hparams['TOKENIZER'] = tokenizer
-        hparams = {k.lower(): v for k, v in hparams.items()}
-        hparams['max_len'] = hparams['max_length']
-        hparams['name'] = hparams['model_name']
-        hparams['mixed'] = hparams['float16']
-        hparams['base_log_dir'] = models_path
-        del hparams['max_length'], hparams['model_name'], hparams['float16']
-
-        base = cls(**hparams)
-        base.get_model().load_weights(os.path.join(base.log_dir, 'cp.ckpt')).expect_partial()
-        return base
-
-    def fit(self, training_dataset: tf.data.Dataset, epochs: int,
-            callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
-        """Call .fit() on the model attribute.
-        Runs the train sequence for self.model"""
-        try:
-            self.compile()
-        except AttributeError:
-            print("Skipping Model Compiling: Model already compiled.")
-        try:
-            tf.keras.utils.plot_model(self.model, to_file=os.path.join(os.path.join(self.log_dir, 'images'), 'image.png'), expand_nested=True,
-                                      show_shapes=True, show_layer_names=True, show_dtype=True)
-        except Exception as e:
-            with open(os.path.join(os.path.join(self.log_dir, 'images'), 'error.txt'), 'w') as f:
-                f.write(f"Image error: {e}")
-                print(f"Image error: {e}")
-                f.close()
-        initial_epoch = self.config['EPOCHS']
-        self.config['EPOCHS'] = self.config['EPOCHS'] + epochs
-        self.save_hparams()
-        with tf.profiler.experimental.Trace("Train"):
-            history = self.model.fit(training_dataset, validation_data=validation_dataset, epochs=self.config['EPOCHS'],
-                                     callbacks=callbacks if callbacks is not None else self.get_default_callbacks(),
-                                     use_multiprocessing=True, initial_epoch=initial_epoch)
-            return history
+class PreformerIntegration:
+    """None"""
+    pass
