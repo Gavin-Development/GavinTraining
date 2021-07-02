@@ -4,6 +4,57 @@ from .models import tf
 from typing import Dict
 
 
+def iid_gaussian(m, d):
+    """Generate random values that are I.I.D (independent identically distributed)"""
+    return tf.random.normal(size=(m, d))
+
+
+def orthogonal_gaussian(m, d):
+    """Generate Orthogonal Gaussian distribution's. This is to improve upon MSE (mean squared error)
+    inside a preformer."""
+    def orthogonal_square():
+        q, _ = tf.linalg.qr(iid_gaussian(d, d))
+        return q.T
+
+    num_squares = int(m / d)
+    blocks = [orthogonal_square() for _ in range(num_squares)]
+
+    remainder = m - d * num_squares
+    if remainder:
+        blocks.append(orthogonal_square()[:remainder])
+
+    matrix = tf.experimental.numpy.vstack(blocks)
+    matrix /= tf.sqrt(num_squares + remainder / d)
+
+    return matrix
+
+
+def phi(h, fs, random_feats, m):
+    return lambda x: (
+        h(x) / tf.sqrt(m) *
+        tf.concat([f(tf.einsum("...d_model,md->...num_feature", x, random_feats)) for f in fs],
+                  axis=-1)
+    )
+
+
+def attn_hat(query, key, value, phi_fun, normalize=True):
+    l, d = query.shape
+    normalizer = 1 / (d ** 0.25)
+    q_prime = phi_fun(query * normalizer)
+    k_prime = phi_fun(key * normalizer)
+    d_inv = tf.linalg.diag(1 / (q_prime @ (k_prime.T @ tf.ones(l))))
+    return d_inv @ (q_prime @ (k_prime.T @ value))
+
+
+def positive_attention(query, key, value, random_feats, mask, normalize=True):
+    """Instead of using ScaledDotProduction, this uses the above Gaussian elements to estimate the answer that
+    the full ScaledDotProduction would give. """
+    def h(x):
+        return tf.exp(-tf.math.square(x).sum(axis=-1, keepdims=True) / 2)
+    kernel = phi(h, [tf.exp], random_feats, mask)
+    return attn_hat(query, key, value, kernel, normalize)
+
+
 def scaled_dot_product_attention(query, key, value, mask):
     matmul_qk = tf.matmul(query, key, transpose_b=True)
 
@@ -16,6 +67,10 @@ def scaled_dot_product_attention(query, key, value, mask):
 
     attention_weights = tf.nn.softmax(logits, axis=-1)
     return tf.matmul(attention_weights, value)
+
+
+def generate_random_features():
+    pass
 
 
 # noinspection PyMethodOverriding,PyMethodMayBeStatic
@@ -124,6 +179,54 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     def get_config(self):
         cfg = super().get_config()
         return cfg
+
+
+class MultiHeadPreformerAttention(MultiHeadAttention):
+    """MultiHead attention using the performers specification,
+    significantly improving memory and time complexity allowing for
+    higher values of sequence length, whilst maintaining as good or
+    some cases better accuracy compared to standard transformer.
+
+    Attributes:
+            :arg d_model: int
+                Embeddings Size.
+            :arg num_heads: int
+                The number of heads the layer should have
+            :arg num_features: int
+                Number of features to be used in Gaussian Matrix.
+            :arg name: str
+                The name of layer, for output with model.summary
+    """
+
+    def __init__(self, d_model: int, num_heads: int, num_features: int, name: str):
+        super().__init__(d_model, num_heads, name)
+        self.random_feats = orthogonal_gaussian(num_features, self.d_model)
+
+    def call(self, inputs: Dict):
+        query, key, value, mask = inputs['query'], inputs['key'], inputs[
+            'value'], inputs['mask']
+        batch_size = tf.shape(query)[0]
+
+        # linear layers
+        query = self.query_dense(query)
+        key = self.key_dense(key)
+        value = self.value_dense(value)
+
+        # split heads
+        query = self.split_heads(query, batch_size)
+        key = self.split_heads(key, batch_size)
+        value = self.split_heads(value, batch_size)
+
+        scaled_attention = positive_attention(query=query, key=key, value=value, mask=mask, random_feats=self.random_feats)
+
+        scaled_attention = tf.transpose(scaled_attention, perm=[0, 2, 1, 3])
+
+        concat_attention = tf.reshape(scaled_attention,
+                                      (batch_size, -1, self.d_model))
+
+        outputs = self.dense(concat_attention)
+
+        return outputs
 
 
 class GPUEnabledEmbedding(tf.keras.layers.Embedding):
