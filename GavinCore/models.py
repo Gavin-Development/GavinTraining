@@ -501,6 +501,7 @@ class PreformerIntegration(TransformerIntegration):
         super().__init__(num_layers, units, d_model, num_heads, dropout, max_len, base_log_dir, tokenizer=tokenizer,
                          name=name, mixed=mixed, epochs=epochs, metadata=metadata)
         self.num_features = num_features
+        self.config['NUM_FEATURES'] = self.num_features
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
         """Encoder Layer
