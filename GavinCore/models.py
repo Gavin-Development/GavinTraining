@@ -5,7 +5,7 @@ import json
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding
+from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding, MultiHeadPreformerAttention
 from .preprocessing.text import preprocess_sentence
 from .callbacks import PredictCallback
 from tensorboard.plugins import projector
@@ -488,6 +488,83 @@ class TransformerIntegration(TransformerAbstract):
             name=name)
 
 
-class PreformerIntegration:
-    """None"""
-    pass
+class PreformerIntegration(TransformerIntegration):
+    """Improvement upon the original Transformer,
+    the preformer seeks to greatly decrease the time and memory
+    complexity of the original transformer model in terms of
+    sequence length."""
+
+    def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
+                 num_features: int, base_log_dir: typing.AnyStr,
+                 tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+        super().__init__(num_layers, units, d_model, num_heads, dropout, max_len, base_log_dir, tokenizer=tokenizer,
+                         name=name, mixed=mixed, epochs=epochs, metadata=metadata)
+        self.num_features = num_features
+
+    def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
+        """Encoder Layer
+                Arguments:
+                    :arg name: str
+                        The name for the layer, returned in model.summary()
+                """
+        inputs = tf.keras.Input(shape=(None, self.d_model), name="inputs")
+        padding_mask = tf.keras.Input(shape=(1, 1, None), name="padding_mask")
+
+        attention = MultiHeadPreformerAttention(
+            self.d_model, self.num_heads, self.num_features, name="attention")({'query': inputs,
+                                                                                'key': inputs,
+                                                                                'value': inputs,
+                                                                                'mask': padding_mask})
+        attention = tf.keras.layers.Dropout(rate=self.dropout)(attention)
+        attention = tf.keras.layers.LayerNormalization(
+            epsilon=1e-6)(inputs + attention)
+
+        outputs = tf.keras.layers.Dense(units=self.units, activation='relu')(attention)
+        outputs = tf.keras.layers.Dense(units=self.d_model)(outputs)
+        outputs = tf.keras.layers.Dropout(rate=self.dropout)(outputs)
+        outputs = tf.keras.layers.LayerNormalization(
+            epsilon=1e-6)(attention + outputs)
+
+        return tf.keras.Model(
+            inputs=[inputs, padding_mask], outputs=outputs, name=name)
+
+    def decoder_layer(self, name: str = "decoder_layer") -> tf.keras.Model:
+        """Decoder Layer
+                        Arguments:
+                            :arg name: str
+                                The name for the layer, returned in model.summary()
+                        """
+        inputs = tf.keras.Input(shape=(None, self.d_model), name="inputs")
+        enc_outputs = tf.keras.Input(shape=(None, self.d_model), name="encoder_outputs")
+        look_ahead_mask = tf.keras.Input(
+            shape=(1, None, None), name="look_ahead_mask")
+        padding_mask = tf.keras.Input(shape=(1, 1, None), name='padding_mask')
+
+        attention1 = MultiHeadPreformerAttention(
+            self.d_model, self.num_heads, self.num_features, name="attention_1")(inputs={'query': inputs,
+                                                                                         'key': inputs,
+                                                                                         'value': inputs,
+                                                                                         'mask': look_ahead_mask})
+        attention1 = tf.keras.layers.LayerNormalization(
+            epsilon=1e-6)(attention1 + inputs)
+
+        attention2 = MultiHeadPreformerAttention(
+            self.d_model, self.num_heads, self.num_features, name="attention_2")(inputs={'query': attention1,
+                                                                                         'key': enc_outputs,
+                                                                                         'value': enc_outputs,
+                                                                                         'mask': padding_mask})
+        attention2 = tf.keras.layers.Dropout(rate=self.dropout)(attention2)
+        attention2 = tf.keras.layers.LayerNormalization(
+            epsilon=1e-6)(attention2 + attention1)
+
+        outputs = tf.keras.layers.Dense(units=self.units, activation='relu')(attention2)
+        outputs = tf.keras.layers.Dense(units=self.d_model)(outputs)
+        outputs = tf.keras.layers.Dropout(rate=self.dropout)(outputs)
+        outputs = tf.keras.layers.LayerNormalization(
+            epsilon=1e-6)(outputs + attention2)
+
+        return tf.keras.Model(
+            inputs=[inputs, enc_outputs, look_ahead_mask, padding_mask],
+            outputs=outputs,
+            name=name)
