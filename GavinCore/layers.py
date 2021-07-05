@@ -96,12 +96,7 @@ def attn_hat(query, key, value, phi_fun=None, normalize=True, random_feats=None)
 
     # noinspection SpellCheckingInspection
     av_attention = tf.einsum("lbhm,lbhd->bhmd", k_prime, value)
-    print(f"""\
-Q: {q_prime.shape}
-K: {k_prime.shape}
-V: {value.shape}
-AV: {av_attention.shape}\n\n
-""")
+
     # noinspection SpellCheckingInspection
     av_attention = tf.einsum("lbhm,bhmd->lbhd", q_prime, av_attention)
     # noinspection SpellCheckingInspection
