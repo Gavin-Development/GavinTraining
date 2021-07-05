@@ -1,4 +1,3 @@
-from .preprocessing.text import np
 from .models import tf
 
 
@@ -9,35 +8,24 @@ def create_data_objects(questions, answers, buffer_size, batch_size):
     answers_train = answers[0: int(sizes[1] * .80)]
     answers_val = answers[int(sizes[1] * .80):]
 
-    dec_inputs_train = answers_train.copy()
-    dec_inputs_train[:, -1] = 0
-    dec_inputs_val = answers_val.copy()
-    dec_inputs_val[:, -1] = 0
-    
-    outputs_train = answers_train.copy()
-    outputs_train[:, 0] = 0
-    outputs_train = np.roll(outputs_train.copy(), -1)  # Roll back values -1 to not leave an empty value.
-    outputs_val = answers_val.copy()
-    outputs_val[:, 0] = 0
-    del answers_train, answers_val
     # decoder inputs use the previous target as input
     # remove s_token from targets
     # print("Beginning Dataset Shuffling, Batching and Prefetch.")
     dataset_t = tf.data.Dataset.from_tensor_slices((
         {
             'inputs': questions_train,  # Source
-            'dec_inputs': dec_inputs_train  # Targets
+            'dec_inputs': answers_train[:, :-1]  # Targets
         },
         {
-            'outputs': outputs_train  # Outputs
+            'outputs': answers_train[:, 1:]  # Outputs
         }))
     dataset_v = tf.data.Dataset.from_tensor_slices((
         {
             'inputs': questions_val,  # Source
-            'dec_inputs': dec_inputs_val  # Targets
+            'dec_inputs': answers_val[:, :-1]  # Targets
         },
         {
-            'outputs': outputs_val  # Outputs
+            'outputs': answers_val[:, 1:]  # Outputs
         }))
 
     dataset_t = dataset_t.cache()
