@@ -124,6 +124,9 @@ class TestPreformer(unittest.TestCase):
 
         try:
             reply = base.predict("This is a test.")
+            print(f"""\
+Prompt: This is a test.
+Reply: {reply}""")
         except Exception as e:
             self.fail(f"Model predict failed: {e}")
 
