@@ -131,7 +131,7 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
-        y_true = tf.reshape(y_true, shape=(-1, self.max_len - 1))
+        y_true = tf.reshape(y_true, shape=(-1, self.max_len))
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True, reduction='none')(y_true, y_pred)
@@ -498,9 +498,9 @@ class PreformerIntegration(TransformerIntegration):
                  num_features: int, base_log_dir: typing.AnyStr,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+        self.num_features = num_features
         super().__init__(num_layers, units, d_model, num_heads, dropout, max_len, base_log_dir, tokenizer=tokenizer,
                          name=name, mixed=mixed, epochs=epochs, metadata=metadata)
-        self.num_features = num_features
         self.config['NUM_FEATURES'] = self.num_features
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
