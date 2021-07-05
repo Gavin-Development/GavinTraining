@@ -12,7 +12,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-class TestTransformer(unittest.TestCase):
+class TestPreformer(unittest.TestCase):
     def setUp(self) -> None:
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
         self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
@@ -23,15 +23,15 @@ class TestTransformer(unittest.TestCase):
             'NUM_HEADS': 2,
             'DROPOUT': 0.1,
             'MAX_LENGTH': 52,
-            'NUM_FEATURES': 192,
+            'NUM_FEATURES': 256,
             'TOKENIZER': self.tokenizer,
-            'MODEL_NAME': "TestTransformer",
+            'MODEL_NAME': "TestPreformer",
             'FLOAT16': False,
             'EPOCHS': 0
         }
 
     def test_001_model_create(self):
-        """Make sure the TransformerIntegration can create a tf.models.Model instance."""
+        """Make sure the PreformerIntegration can create a tf.models.Model instance."""
         try:
             base = PreformerIntegration(num_layers=1,
                                         units=256,
@@ -39,12 +39,12 @@ class TestTransformer(unittest.TestCase):
                                         num_heads=2,
                                         dropout=0.1,
                                         max_len=52,
-                                        num_features=192,
+                                        num_features=256,
                                         base_log_dir='../models/',
                                         tokenizer=self.tokenizer,
-                                        name="TestTransformer")
+                                        name="TestPreformer")
             self.assertTrue(hasattr(base, "model"), "Model not created.")
-            shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
+            shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestPreformer')))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
 
@@ -56,12 +56,12 @@ class TestTransformer(unittest.TestCase):
                                     num_heads=2,
                                     dropout=0.1,
                                     max_len=52,
-                                    num_features=192,
+                                    num_features=256,
                                     base_log_dir='../models/',
                                     tokenizer=self.tokenizer,
-                                    name="TestTransformer")
+                                    name="TestPreformer")
         model_returned_hparams = base.get_hparams()
-        shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
+        shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestPreformer')))
         self.assertDictEqual(model_returned_hparams, self.hparams, f"Model Parameter mismatch.\n"
                                                                    f"Self: {self.hparams}\n"
                                                                    f"Model: {model_returned_hparams}")
@@ -74,10 +74,10 @@ class TestTransformer(unittest.TestCase):
                                     num_heads=2,
                                     dropout=0.1,
                                     max_len=52,
-                                    num_features=192,
+                                    num_features=256,
                                     base_log_dir='../models/',
                                     tokenizer=self.tokenizer,
-                                    name="TestTransformer")
+                                    name="TestPreformer")
         questions, answers = load_tokenized_data(max_samples=10_000,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
@@ -89,20 +89,20 @@ class TestTransformer(unittest.TestCase):
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
-                     epochs=1)
+                     epochs=1, callbacks=base.get_default_callbacks()[:-1])
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
         base.save_hparams()
-        self.assertTrue(os.path.exists('../models/TestTransformer/config/config.json'))
-        self.assertTrue(os.path.exists('../models/TestTransformer/tokenizer/TestTransformer_tokenizer.subwords'))
+        self.assertTrue(os.path.exists('../models/TestPreformer/config/config.json'))
+        self.assertTrue(os.path.exists('../models/TestPreformer/tokenizer/TestPreformer_tokenizer.subwords'))
         hparams = self.hparams
-        hparams['TOKENIZER'] = os.path.join('../models/TestTransformer',
-                                            os.path.join('tokenizer', 'TestTransformer' + '_tokenizer'))
+        hparams['TOKENIZER'] = os.path.join('../models/TestPreformer',
+                                            os.path.join('tokenizer', 'TestPreformer' + '_tokenizer'))
         hparams['EPOCHS'] = hparams['EPOCHS'] + 1
-        self.assertEqual(json.load(open('../models/TestTransformer/config/config.json')), hparams)
+        self.assertEqual(json.load(open('../models/TestPreformer/config/config.json')), hparams)
 
     def test_004_model_load_fit(self):
-        base = PreformerIntegration.load_model('../models/', 'TestTransformer')
+        base = PreformerIntegration.load_model('../models/', 'TestPreformer')
 
         questions, answers = load_tokenized_data(max_samples=10_000,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
@@ -115,11 +115,19 @@ class TestTransformer(unittest.TestCase):
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
-                     epochs=1)
+                     epochs=1, callbacks=base.get_default_callbacks()[:-1])
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
 
-    def test_005_model_projector_metadata(self):
+    def test_005_model_predicting(self):
+        base = PreformerIntegration.load_model('../models/', 'TestPreformer')
+
+        try:
+            reply = base.predict("This is a test.")
+        except Exception as e:
+            self.fail(f"Model predict failed: {e}")
+
+    def test_006_model_projector_metadata(self):
         try:
             base = PreformerIntegration(num_layers=1,
                                         units=256,
@@ -127,10 +135,10 @@ class TestTransformer(unittest.TestCase):
                                         num_heads=2,
                                         dropout=0.1,
                                         max_len=52,
-                                        num_features=192,
+                                        num_features=256,
                                         base_log_dir='../models/',
                                         tokenizer=self.tokenizer,
-                                        name="TestTransformer")
-            self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
+                                        name="TestPreformer")
+            self.assertTrue(os.path.exists('../models/TestPreformer/metadata.tsv'))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
