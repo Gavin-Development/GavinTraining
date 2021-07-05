@@ -14,18 +14,18 @@ def create_data_objects(questions, answers, buffer_size, batch_size):
     dataset_t = tf.data.Dataset.from_tensor_slices((
         {
             'inputs': questions_train,  # Source
-            'dec_inputs': answers_train[:, :-1]  # Targets
+            'dec_inputs': answers_train  # Targets
         },
         {
-            'outputs': answers_train[:, 1:]  # Outputs
+            'outputs': answers_train  # Outputs
         }))
     dataset_v = tf.data.Dataset.from_tensor_slices((
         {
             'inputs': questions_val,  # Source
-            'dec_inputs': answers_val[:, :-1]  # Targets
+            'dec_inputs': answers_val  # Targets
         },
         {
-            'outputs': answers_val[:, 1:]  # Outputs
+            'outputs': answers_val  # Outputs
         }))
 
     dataset_t = dataset_t.cache()
