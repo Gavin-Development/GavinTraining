@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from tensorflow.python.keras.utils import tf_utils
 
 from .models import tf
@@ -6,15 +8,16 @@ from typing import Dict
 
 def iid_gaussian(m, d):
     """Generate random values that are I.I.D (independent identically distributed)"""
-    return tf.random.normal(size=(m, d))
+    return tf.random.normal(shape=(m, d))
 
 
 def orthogonal_gaussian(m, d):
     """Generate Orthogonal Gaussian distribution's. This is to improve upon MSE (mean squared error)
     inside a preformer."""
+
     def orthogonal_square():
         q, _ = tf.linalg.qr(iid_gaussian(d, d))
-        return q.T
+        return tf.transpose(q)
 
     num_squares = int(m / d)
     blocks = [orthogonal_square() for _ in range(num_squares)]
@@ -29,30 +32,93 @@ def orthogonal_gaussian(m, d):
     return matrix
 
 
-def phi(h, fs, random_feats, m):
-    return lambda x: (
-        h(x) / tf.sqrt(m) *
-        tf.concat([f(tf.einsum("...d_model,md->...num_feature", x, random_feats)) for f in fs],
-                  axis=-1)
-    )
+def softmax_kernel_transformation(data,
+                                  is_query,
+                                  projection_matrix=None,
+                                  numerical_stabilizer=0.000001):
+    """Computes random features for the softmax kernel using FAVOR+ mechanism.
+
+  Computes random features for the softmax kernel using FAVOR+ mechanism from
+  https://arxiv.org/pdf/2009.14794.pdf.
+
+  Args:
+    data: input data tensor of the shape [B, L, H, D], where: B - batch
+      dimension, L - attention dimensions, H - heads, D - features.
+    is_query: indicates whether input data is a query oor key tensor.
+    projection_matrix: random Gaussian matrix of shape [M, D], where M stands
+      for the number of random features and each D x D sub-block has pairwise
+      orthogonal rows.
+    numerical_stabilizer: small positive constant for numerical stability.
+
+  Returns:
+    Corresponding kernel feature map.
+  """
+    data_normalizer = 1.0 / (
+        tf.math.sqrt(tf.math.sqrt(tf.dtypes.cast(data.shape[-1], tf.float32))))
+    data = data_normalizer * data
+    ratio = 1.0 / tf.math.sqrt(
+        tf.dtypes.cast(projection_matrix.shape[0], tf.float32))
+    data_dash = tf.einsum("blhd,md->blhm", data, projection_matrix)
+    diag_data = tf.math.square(data)
+    diag_data = tf.math.reduce_sum(
+        diag_data, axis=tf.keras.backend.ndim(data) - 1)
+    diag_data = diag_data / 2.0
+    diag_data = tf.expand_dims(diag_data, axis=tf.keras.backend.ndim(data) - 1)
+    last_dims_t = (len(data_dash.shape) - 1,)
+    attention_dims_t = (len(data_dash.shape) - 3,)
+    if is_query:
+        data_dash = ratio * (
+                tf.math.exp(data_dash - diag_data - tf.math.reduce_max(
+                    data_dash, axis=last_dims_t, keepdims=True)) + numerical_stabilizer)
+    else:
+        data_dash = ratio * (
+                tf.math.exp(data_dash - diag_data - tf.math.reduce_max(
+                    data_dash, axis=last_dims_t + attention_dims_t, keepdims=True)) +
+                numerical_stabilizer)
+
+    return data_dash
 
 
-def attn_hat(query, key, value, phi_fun, normalize=True):
-    l, d = query.shape
-    normalizer = 1 / (d ** 0.25)
-    q_prime = phi_fun(query * normalizer)
-    k_prime = phi_fun(key * normalizer)
-    d_inv = tf.linalg.diag(1 / (q_prime @ (k_prime.T @ tf.ones(l))))
-    return d_inv @ (q_prime @ (k_prime.T @ value))
+def attn_hat(query, key, value, phi_fun=None, normalize=True, random_feats=None):
+    l = tf.shape(query)[0]
+
+    query = tf.transpose(query, perm=[0, 2, 1, 3])
+    key = tf.transpose(key, perm=[0, 2, 1, 3])
+
+    if phi_fun is not None:
+        q_prime = phi_fun(query)
+        k_prime = phi_fun(key)
+    else:
+        q_prime = softmax_kernel_transformation(query, projection_matrix=random_feats, is_query=True)
+        k_prime = softmax_kernel_transformation(key, projection_matrix=random_feats, is_query=False)
+
+    value = tf.transpose(value, [0, 2, 1, 3])
+
+    # noinspection SpellCheckingInspection
+    av_attention = tf.einsum("lbhm,lbhd->bhmd", k_prime, value)
+    print(f"""\
+Q: {q_prime.shape}
+K: {k_prime.shape}
+V: {value.shape}
+AV: {av_attention.shape}\n\n
+""")
+    # noinspection SpellCheckingInspection
+    av_attention = tf.einsum("lbhm,bhmd->lbhd", q_prime, av_attention)
+    # noinspection SpellCheckingInspection
+    normalizer = tf.einsum("lbhm,l->bhm", k_prime, tf.ones(l))
+    # noinspection SpellCheckingInspection
+    normalizer = tf.einsum("lbhm,bhm->lbh", q_prime, normalizer)
+    av_attention = tf.transpose(av_attention, [1, 0, 2, 3])
+    normalizer = tf.transpose(normalizer, [1, 0, 2])
+    normalizer = tf.expand_dims(normalizer, len(tf.shape(normalizer)))
+    return av_attention / normalizer
 
 
-def positive_attention(query, key, value, random_feats, mask, normalize=True):
+def positive_attention(query, key, value, random_feats, normalize=True):
     """Instead of using ScaledDotProduction, this uses the above Gaussian elements to estimate the answer that
     the full ScaledDotProduction would give. """
-    def h(x):
-        return tf.exp(-tf.math.square(x).sum(axis=-1, keepdims=True) / 2)
-    kernel = phi(h, [tf.exp], random_feats, mask)
-    return attn_hat(query, key, value, kernel, normalize)
+
+    return attn_hat(query, key, value, normalize=normalize, random_feats=random_feats)
 
 
 def scaled_dot_product_attention(query, key, value, mask):
@@ -137,7 +203,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         assert d_model % self.num_heads == 0
 
-        self.depth = d_model // self.num_heads
+        self.depth = d_model // 2
 
         self.query_dense = tf.keras.layers.Dense(units=d_model)
         self.key_dense = tf.keras.layers.Dense(units=d_model)
@@ -146,8 +212,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         self.dense = tf.keras.layers.Dense(units=d_model)
 
     def split_heads(self, inputs, batch_size: int):
-        inputs = tf.reshape(
-            inputs, shape=(batch_size, -1, self.num_heads, self.depth))
+        inputs = tf.reshape(inputs, shape=(batch_size, -1, self.num_heads, self.depth))
         return tf.transpose(inputs, perm=[0, 2, 1, 3])
 
     def call(self, inputs: Dict):
@@ -199,8 +264,9 @@ class MultiHeadPreformerAttention(MultiHeadAttention):
     """
 
     def __init__(self, d_model: int, num_heads: int, num_features: int, name: str):
+        self.num_features = num_features
         super().__init__(d_model, num_heads, name)
-        self.random_feats = orthogonal_gaussian(num_features, self.d_model)
+        self.random_feats = orthogonal_gaussian(self.num_features, self.depth)
 
     def call(self, inputs: Dict):
         query, key, value, mask = inputs['query'], inputs['key'], inputs[
@@ -217,7 +283,8 @@ class MultiHeadPreformerAttention(MultiHeadAttention):
         key = self.split_heads(key, batch_size)
         value = self.split_heads(value, batch_size)
 
-        scaled_attention = positive_attention(query=query, key=key, value=value, mask=mask, random_feats=self.random_feats)
+        scaled_attention = positive_attention(query=query, key=key, value=value,
+                                              random_feats=self.random_feats)
 
         scaled_attention = tf.transpose(scaled_attention, perm=[0, 2, 1, 3])
 
@@ -232,6 +299,7 @@ class MultiHeadPreformerAttention(MultiHeadAttention):
 class GPUEnabledEmbedding(tf.keras.layers.Embedding):
     """Embedding Layers are forced to run on CPUs which seriously
     hurts training performance this fixes that issue."""
+
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
         self.embeddings = self.add_weight(
