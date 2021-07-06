@@ -590,3 +590,12 @@ class PreformerIntegration(TransformerIntegration):
             # as its input
             output = tf.concat([output, predicted_id], axis=-1)
         return tf.squeeze(output, axis=0)
+
+    def get_default_callbacks(self) -> typing.List:
+        return [
+            tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(self.log_dir, 'cp.ckpt'), save_weights_only=True,
+                                               verbose=1),
+            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
+            PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
+                            max_length=self.max_len,
+                            log_dir=self.log_dir, model_type="preformer")]

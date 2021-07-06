@@ -2,12 +2,13 @@ import random
 import numpy as np
 from .models import tf, tfds
 from .preprocessing.text import preprocess_sentence
-from typing import List, AnyStr, Dict
+from typing import List, AnyStr, Dict, Union
 
 
 class PredictCallback(tf.keras.callbacks.Callback):
-    def __init__(self, tokenizer: tfds.deprecated.text.SubwordTextEncoder, start_token: List[int], end_token: List[int], max_length: int, log_dir: AnyStr):
+    def __init__(self, tokenizer: tfds.deprecated.text.SubwordTextEncoder, start_token: List[int], end_token: List[int], max_length: int, log_dir: AnyStr, model_type: str = "transformer"):
         super(PredictCallback, self).__init__()
+        self.model_type = model_type
         self.tokenizer = tokenizer
         self.START_TOKEN = start_token
         self.END_TOKEN = end_token
@@ -22,26 +23,50 @@ class PredictCallback(tf.keras.callbacks.Callback):
         self.past_logs = []
 
     def _evaluate(self, sentence: AnyStr):
-        sentence = preprocess_sentence(sentence)
+        if self.model_type == "preformer":
+            sentence = preprocess_sentence(sentence)
 
-        sentence = tf.expand_dims(self.START_TOKEN + self.tokenizer.encode(sentence) + self.END_TOKEN, axis=0)
+            sentence = tf.expand_dims(self.START_TOKEN + self.tokenizer.encode(sentence) + self.END_TOKEN, axis=0)
 
-        output = tf.expand_dims(self.START_TOKEN, 0)
+            output = tf.expand_dims(self.START_TOKEN, 0)
+            output = tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.MAX_LENGTH, padding='post')
+            sentence = tf.keras.preprocessing.sequence.pad_sequences(sentence, maxlen=self.MAX_LENGTH, padding='post')
 
-        for i in range(self.MAX_LENGTH):
-            predictions = self.model(inputs=[sentence, output], training=False)
+            for i in range(self.MAX_LENGTH):
+                predictions = self.model(inputs=[sentence, output], training=False)
 
-            # select the last word from the seq length dimension
-            predictions = predictions[:, -1:, :]
-            predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+                # select the last word from the seq length dimension
+                predictions = predictions[:, -1:, :]
+                predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
 
-            if tf.equal(predicted_id, self.END_TOKEN[0]):
-                break
+                if tf.equal(predicted_id, self.END_TOKEN[0]):
+                    break
 
-            # concatenated the predicted_id to the output which is given the decoder
-            # as its input
-            output = tf.concat([output, predicted_id], axis=-1)
-        return tf.squeeze(output, axis=0)
+                # concatenated the predicted_id to the output which is given the decoder
+                # as its input
+                output = tf.concat([output, predicted_id], axis=-1)
+            return tf.squeeze(output, axis=0)
+        else:
+            sentence = preprocess_sentence(sentence)
+
+            sentence = tf.expand_dims(self.START_TOKEN + self.tokenizer.encode(sentence) + self.END_TOKEN, axis=0)
+
+            output = tf.expand_dims(self.START_TOKEN, 0)
+
+            for i in range(self.MAX_LENGTH):
+                predictions = self.model(inputs=[sentence, output], training=False)
+
+                # select the last word from the seq length dimension
+                predictions = predictions[:, -1:, :]
+                predicted_id = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+
+                if tf.equal(predicted_id, self.END_TOKEN[0]):
+                    break
+
+                # concatenated the predicted_id to the output which is given the decoder
+                # as its input
+                output = tf.concat([output, predicted_id], axis=-1)
+            return tf.squeeze(output, axis=0)
 
     def _predict(self):
         predictions = []
