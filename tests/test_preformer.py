@@ -119,7 +119,25 @@ class TestPreformer(unittest.TestCase):
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
 
-    def test_005_model_predicting(self):
+    def test_005_model_callbacks(self):
+        base = PreformerIntegration.load_model('../models/', 'TestPreformer')
+
+        questions, answers = load_tokenized_data(max_samples=10_000,
+                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
+                                                 tokenizer_name="Tokenizer-3",
+                                                 s_token=base.start_token,
+                                                 e_token=base.end_token, )
+        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
+        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+
+        try:
+            base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
+                     epochs=2, callbacks=base.get_default_callbacks())
+        except Exception as e:
+            self.fail(f"Model fit failed: {e}")
+
+    def test_006_model_predicting(self):
         base = PreformerIntegration.load_model('../models/', 'TestPreformer')
 
         try:
@@ -130,7 +148,7 @@ Reply: {reply}""")
         except Exception as e:
             self.fail(f"Model predict failed: {e}")
 
-    def test_006_model_projector_metadata(self):
+    def test_007_model_projector_metadata(self):
         try:
             base = PreformerIntegration(num_layers=1,
                                         units=256,
