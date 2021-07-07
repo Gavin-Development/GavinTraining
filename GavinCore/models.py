@@ -573,8 +573,8 @@ class PreformerIntegration(TransformerIntegration):
         sentence = tf.expand_dims(self.start_token + self.tokenizer.encode(sentence) + self.end_token, axis=0)
 
         output = tf.expand_dims(self.start_token, 0)
-        output = tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.max_len-1, padding='post')
-        sentence = tf.keras.preprocessing.sequence.pad_sequences(sentence, maxlen=self.max_len-1, padding='post')
+        output = tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.max_len, padding='post')
+        sentence = tf.keras.preprocessing.sequence.pad_sequences(sentence, maxlen=self.max_len, padding='post')
 
         for i in range(self.max_len-1):
             predictions = self.model(inputs=[sentence, output], training=False)
@@ -597,5 +597,5 @@ class PreformerIntegration(TransformerIntegration):
                                                verbose=1),
             tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
             PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
-                            max_length=self.max_len-1,
+                            max_length=self.max_len,
                             log_dir=self.log_dir, model_type="preformer")]
