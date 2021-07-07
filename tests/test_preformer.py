@@ -17,32 +17,30 @@ class TestPreformer(unittest.TestCase):
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
         self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
         self.hparams = {
-            'NUM_LAYERS': 1,
-            'UNITS': 256,
-            'D_MODEL': 128,
-            'NUM_HEADS': 2,
-            'DROPOUT': 0.1,
-            'MAX_LENGTH': 52,
-            'NUM_FEATURES': 256,
+            'NUM_LAYERS': 4,
+            'UNITS': 2048,
+            'D_MODEL': 256,
+            'NUM_HEADS': 8,
+            'DROPOUT': 0.01,
+            'MAX_LENGTH': 80,
+            'NUM_FEATURES': 128,
             'TOKENIZER': self.tokenizer,
             'MODEL_NAME': "TestPreformer",
             'FLOAT16': False,
             'EPOCHS': 0
         }
+        self.config_for_models = self.hparams.copy()
+        self.config_for_models = {k.lower(): v for k, v in self.config_for_models.items()}
+        self.config_for_models['max_len'] = self.config_for_models['max_length']
+        self.config_for_models['name'] = self.config_for_models['model_name']
+        self.config_for_models['mixed'] = self.config_for_models['float16']
+        self.config_for_models['base_log_dir'] = '../models/'
+        del self.config_for_models['max_length'], self.config_for_models['model_name'], self.config_for_models['float16']
 
     def test_001_model_create(self):
         """Make sure the PreformerIntegration can create a tf.models.Model instance."""
         try:
-            base = PreformerIntegration(num_layers=1,
-                                        units=256,
-                                        d_model=128,
-                                        num_heads=2,
-                                        dropout=0.1,
-                                        max_len=52,
-                                        num_features=256,
-                                        base_log_dir='../models/',
-                                        tokenizer=self.tokenizer,
-                                        name="TestPreformer")
+            base = PreformerIntegration(**self.config_for_models)
             self.assertTrue(hasattr(base, "model"), "Model not created.")
             shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestPreformer')))
         except Exception as e:
@@ -50,16 +48,7 @@ class TestPreformer(unittest.TestCase):
 
     def test_002_hparams_return(self):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
-        base = PreformerIntegration(num_layers=1,
-                                    units=256,
-                                    d_model=128,
-                                    num_heads=2,
-                                    dropout=0.1,
-                                    max_len=52,
-                                    num_features=256,
-                                    base_log_dir='../models/',
-                                    tokenizer=self.tokenizer,
-                                    name="TestPreformer")
+        base = PreformerIntegration(**self.config_for_models)
         model_returned_hparams = base.get_hparams()
         shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestPreformer')))
         self.assertDictEqual(model_returned_hparams, self.hparams, f"Model Parameter mismatch.\n"
@@ -68,16 +57,7 @@ class TestPreformer(unittest.TestCase):
 
     def test_003_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
-        base = PreformerIntegration(num_layers=1,
-                                    units=256,
-                                    d_model=128,
-                                    num_heads=2,
-                                    dropout=0.1,
-                                    max_len=52,
-                                    num_features=256,
-                                    base_log_dir='../models/',
-                                    tokenizer=self.tokenizer,
-                                    name="TestPreformer")
+        base = PreformerIntegration(**self.config_for_models)
         questions, answers = load_tokenized_data(max_samples=10_000,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
@@ -150,16 +130,7 @@ Reply: {reply}""")
 
     def test_007_model_projector_metadata(self):
         try:
-            base = PreformerIntegration(num_layers=1,
-                                        units=256,
-                                        d_model=128,
-                                        num_heads=2,
-                                        dropout=0.1,
-                                        max_len=52,
-                                        num_features=256,
-                                        base_log_dir='../models/',
-                                        tokenizer=self.tokenizer,
-                                        name="TestPreformer")
+            base = PreformerIntegration(**self.config_for_models)
             self.assertTrue(os.path.exists('../models/TestPreformer/metadata.tsv'))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
