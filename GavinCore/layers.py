@@ -58,7 +58,8 @@ def softmax_kernel_transformation(data,
     data = data_normalizer * data
     ratio = 1.0 / tf.math.sqrt(
         tf.dtypes.cast(projection_matrix.shape[0], tf.float32))
-    data_dash = tf.einsum("blhd,md->blhm", data, projection_matrix)
+    # noinspection SpellCheckingInspection
+    data_dash = tf.einsum("blhd,md->blhm", data, projection_matrix, name="SoftmaxKernel")
     diag_data = tf.math.square(data)
     diag_data = tf.math.reduce_sum(
         diag_data, axis=tf.keras.backend.ndim(data) - 1)
@@ -95,14 +96,14 @@ def attn_hat(query, key, value, phi_fun=None, normalize=True, random_feats=None)
     value = tf.transpose(value, [0, 2, 1, 3])
 
     # noinspection SpellCheckingInspection
-    av_attention = tf.einsum("lbhm,lbhd->bhmd", k_prime, value)
+    av_attention = tf.einsum("lbhm,lbhd->bhmd", k_prime, value, name="AVAttention_PA")
 
     # noinspection SpellCheckingInspection
-    av_attention = tf.einsum("lbhm,bhmd->lbhd", q_prime, av_attention)
+    av_attention = tf.einsum("lbhm,bhmd->lbhd", q_prime, av_attention, name="AVAttention_PB")
     # noinspection SpellCheckingInspection
-    normalizer = tf.einsum("lbhm,l->bhm", k_prime, tf.ones(l))
+    normalizer = tf.einsum("lbhm,l->bhm", k_prime, tf.ones(l), name="NormalizerPA")
     # noinspection SpellCheckingInspection
-    normalizer = tf.einsum("lbhm,bhm->lbh", q_prime, normalizer)
+    normalizer = tf.einsum("lbhm,bhm->lbh", q_prime, normalizer, name="NormalizerPB")
     av_attention = tf.transpose(av_attention, [1, 0, 2, 3])
     normalizer = tf.transpose(normalizer, [1, 0, 2])
     normalizer = tf.expand_dims(normalizer, len(tf.shape(normalizer)))
