@@ -1,3 +1,4 @@
+from .preprocessing.text import np
 from .models import tf
 
 
@@ -15,6 +16,7 @@ def create_data_objects(questions, answers, buffer_size, batch_size):
     
     outputs_train = answers_train.copy()
     outputs_train[:, 0] = 0
+    outputs_train = np.roll(outputs_train.copy(), -1)  # Roll back values -1 to not leave an empty value.
     outputs_val = answers_val.copy()
     outputs_val[:, 0] = 0
     del answers_train, answers_val
