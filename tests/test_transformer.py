@@ -16,6 +16,7 @@ class TestTransformer(unittest.TestCase):
     def setUp(self) -> None:
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
         self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
+        self.max_samples = 10_000
         self.hparams = {
             'NUM_LAYERS': 1,
             'UNITS': 256,
@@ -58,7 +59,7 @@ class TestTransformer(unittest.TestCase):
     def test_003_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
         base = TransformerIntegration(**self.config_for_models)
-        questions, answers = load_tokenized_data(max_samples=10_000,
+        questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
@@ -83,7 +84,7 @@ class TestTransformer(unittest.TestCase):
     def test_004_model_load_fit(self):
         base = TransformerIntegration.load_model('../models/', 'TestTransformer')
 
-        questions, answers = load_tokenized_data(max_samples=10_000,
+        questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
