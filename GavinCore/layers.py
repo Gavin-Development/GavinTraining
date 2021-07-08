@@ -24,7 +24,8 @@ def orthogonal_gaussian(m, d):
     if remainder:
         blocks.append(orthogonal_square()[:remainder])
 
-    matrix = tf.experimental.numpy.vstack(blocks)
+    # matrix = tf.experimental.numpy.vstack(blocks)
+    matrix = tf.concat(blocks, axis=0)
     matrix /= tf.sqrt(num_squares + remainder / d)
 
     return matrix
