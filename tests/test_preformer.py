@@ -22,7 +22,7 @@ class TestPreformer(unittest.TestCase):
             'D_MODEL': 256,
             'NUM_HEADS': 8,
             'DROPOUT': 0.01,
-            'MAX_LENGTH': 80,
+            'MAX_LENGTH': 52,
             'NUM_FEATURES': 128,
             'TOKENIZER': self.tokenizer,
             'MODEL_NAME': "TestPreformer",

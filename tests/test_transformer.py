@@ -28,19 +28,19 @@ class TestTransformer(unittest.TestCase):
             'FLOAT16': False,
             'EPOCHS': 0
         }
+        self.config_for_models = self.hparams.copy()
+        self.config_for_models = {k.lower(): v for k, v in self.config_for_models.items()}
+        self.config_for_models['max_len'] = self.config_for_models['max_length']
+        self.config_for_models['name'] = self.config_for_models['model_name']
+        self.config_for_models['mixed'] = self.config_for_models['float16']
+        self.config_for_models['base_log_dir'] = '../models/'
+        del self.config_for_models['max_length'], self.config_for_models['model_name'], self.config_for_models[
+            'float16']
 
     def test_001_model_create(self):
         """Make sure the TransformerIntegration can create a tf.models.Model instance."""
         try:
-            base = TransformerIntegration(num_layers=1,
-                                          units=256,
-                                          d_model=128,
-                                          num_heads=2,
-                                          dropout=0.1,
-                                          max_len=52,
-                                          base_log_dir='../models/',
-                                          tokenizer=self.tokenizer,
-                                          name="TestTransformer")
+            base = TransformerIntegration(**self.config_for_models)
             self.assertTrue(hasattr(base, "model"), "Model not created.")
             shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
         except Exception as e:
@@ -48,15 +48,7 @@ class TestTransformer(unittest.TestCase):
 
     def test_002_hparams_return(self):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
-        base = TransformerIntegration(num_layers=1,
-                                      units=256,
-                                      d_model=128,
-                                      num_heads=2,
-                                      dropout=0.1,
-                                      max_len=52,
-                                      base_log_dir='../models/',
-                                      tokenizer=self.tokenizer,
-                                      name="TestTransformer")
+        base = TransformerIntegration(**self.config_for_models)
         model_returned_hparams = base.get_hparams()
         shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
         self.assertDictEqual(model_returned_hparams, self.hparams, f"Model Parameter mismatch.\n"
@@ -65,15 +57,7 @@ class TestTransformer(unittest.TestCase):
 
     def test_003_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
-        base = TransformerIntegration(num_layers=1,
-                                      units=256,
-                                      d_model=128,
-                                      num_heads=2,
-                                      dropout=0.1,
-                                      max_len=52,
-                                      base_log_dir='../models/',
-                                      tokenizer=self.tokenizer,
-                                      name="TestTransformer")
+        base = TransformerIntegration(**self.config_for_models)
         questions, answers = load_tokenized_data(max_samples=10_000,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
@@ -116,15 +100,7 @@ class TestTransformer(unittest.TestCase):
 
     def test_005_model_projector_metadata(self):
         try:
-            base = TransformerIntegration(num_layers=1,
-                                          units=256,
-                                          d_model=128,
-                                          num_heads=2,
-                                          dropout=0.1,
-                                          max_len=52,
-                                          base_log_dir='../models/',
-                                          tokenizer=self.tokenizer,
-                                          name="TestTransformer")
+            base = TransformerIntegration(**self.config_for_models)
             self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
