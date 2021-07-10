@@ -221,3 +221,4 @@ logs-backup
 *-old.py
 *-old/
 hyper_parameter_tuning.py
+school_upload.py
