@@ -17,6 +17,8 @@ class TestTransformer(unittest.TestCase):
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
         self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
         self.max_samples = 10_000
+        self.buffer_size = 20_000
+        self.batch_size = 32
         self.hparams = {
             'NUM_LAYERS': 1,
             'UNITS': 256,
@@ -66,7 +68,7 @@ class TestTransformer(unittest.TestCase):
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -91,7 +93,7 @@ class TestTransformer(unittest.TestCase):
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
