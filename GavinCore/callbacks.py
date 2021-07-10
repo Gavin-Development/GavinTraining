@@ -6,9 +6,9 @@ from typing import List, AnyStr, Dict, Union
 
 
 class PredictCallback(tf.keras.callbacks.Callback):
-    def __init__(self, tokenizer: tfds.deprecated.text.SubwordTextEncoder, start_token: List[int], end_token: List[int], max_length: int, log_dir: AnyStr, model_type: str = "transformer"):
+    def __init__(self, tokenizer: tfds.deprecated.text.SubwordTextEncoder, start_token: List[int], end_token: List[int], max_length: int, log_dir: AnyStr, wrapper_model):
         super(PredictCallback, self).__init__()
-        self.model_type = model_type
+        self.wrapper_model = wrapper_model
         self.tokenizer = tokenizer
         self.START_TOKEN = start_token
         self.END_TOKEN = end_token
@@ -73,10 +73,10 @@ class PredictCallback(tf.keras.callbacks.Callback):
         print("Predicting... (This could take a little bit.)")
         for i in range(random.randint(4, len(self.prompts))):  # TODO convert this to gradually increase the number of tests maxing at a value set at construction time.
             sentence = self.prompts[i]
-            prediction = self._evaluate(sentence)
+            prediction = self.wrapper_model.predict(sentence)
 
             predictions.append(
-                (sentence, self.tokenizer.decode([i for i in prediction if i < self.tokenizer.vocab_size])))
+                (sentence, prediction))
         random.shuffle(self.prompts)
 
         return predictions

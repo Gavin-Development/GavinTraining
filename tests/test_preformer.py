@@ -16,6 +16,9 @@ class TestPreformer(unittest.TestCase):
     def setUp(self) -> None:
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
         self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(self.tokenizer_path)
+        self.max_samples = 10_000
+        self.buffer_size = 20_000
+        self.batch_size = 32
         self.hparams = {
             'NUM_LAYERS': 4,
             'UNITS': 2048,
@@ -58,14 +61,14 @@ class TestPreformer(unittest.TestCase):
     def test_003_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
         base = PreformerIntegration(**self.config_for_models)
-        questions, answers = load_tokenized_data(max_samples=10_000,
+        questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -84,14 +87,14 @@ class TestPreformer(unittest.TestCase):
     def test_004_model_load_fit(self):
         base = PreformerIntegration.load_model('../models/', 'TestPreformer')
 
-        questions, answers = load_tokenized_data(max_samples=10_000,
+        questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -102,14 +105,14 @@ class TestPreformer(unittest.TestCase):
     def test_005_model_callbacks(self):
         base = PreformerIntegration.load_model('../models/', 'TestPreformer')
 
-        questions, answers = load_tokenized_data(max_samples=10_000,
+        questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=20_000, batch_size=32)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,

@@ -128,7 +128,7 @@ class TransformerAbstract(abc.ABC):
             tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
             PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
                             max_length=self.max_len,
-                            log_dir=self.log_dir)]
+                            log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
         y_true = tf.reshape(y_true, shape=(-1, self.max_len))
@@ -498,6 +498,9 @@ class PreformerIntegration(TransformerIntegration):
                  num_features: int, base_log_dir: typing.AnyStr,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+        if num_features > d_model:
+            raise ValueError(f"Value for Num_Features {num_features} must be LESS THAN or EQUAL to d_model {d_model}")
+
         self.num_features = num_features
         super().__init__(num_layers, units, d_model, num_heads, dropout, max_len, base_log_dir, tokenizer=tokenizer,
                          name=name, mixed=mixed, epochs=epochs, metadata=metadata)
@@ -590,12 +593,3 @@ class PreformerIntegration(TransformerIntegration):
             # as its input
             output = tf.concat([output, predicted_id], axis=-1)
         return tf.squeeze(output, axis=0)
-
-    def get_default_callbacks(self) -> typing.List:
-        return [
-            tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(self.log_dir, 'cp.ckpt'), save_weights_only=True,
-                                               verbose=1),
-            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
-            PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
-                            max_length=self.max_len,
-                            log_dir=self.log_dir, model_type="preformer")]
