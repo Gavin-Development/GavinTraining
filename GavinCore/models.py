@@ -576,11 +576,10 @@ class PreformerIntegration(TransformerIntegration):
         sentence = tf.expand_dims(self.start_token + self.tokenizer.encode(sentence) + self.end_token, axis=0)
 
         output = tf.expand_dims(self.start_token, 0)
-        output = tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.max_len, padding='post')
         sentence = tf.keras.preprocessing.sequence.pad_sequences(sentence, maxlen=self.max_len, padding='post')
 
         for i in range(self.max_len-1):
-            predictions = self.model(inputs=[sentence, output], training=False)
+            predictions = self.model(inputs=[sentence, tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.max_len, padding='post')], training=False)
 
             # select the last word from the seq length dimension
             predictions = predictions[:, -1:, :]
