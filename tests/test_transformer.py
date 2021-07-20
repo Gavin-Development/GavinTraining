@@ -11,6 +11,15 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+physical_devices = tf.config.list_physical_devices('GPU')
+try:
+    for device in physical_devices:
+        tf.config.experimental.set_memory_growth(device, True)
+except Exception as e:
+    print(f"Error on Memory Growth Setting. {e}")
+else:
+    print("Memory Growth Set to True.")
+
 
 class TestTransformer(unittest.TestCase):
     def setUp(self) -> None:
@@ -39,6 +48,7 @@ class TestTransformer(unittest.TestCase):
         self.config_for_models['base_log_dir'] = '../models/'
         del self.config_for_models['max_length'], self.config_for_models['model_name'], self.config_for_models[
             'float16']
+        tf.keras.backend.clear_session()  # Reduces the amount of memory this will use.
 
     def test_001_model_create(self):
         """Make sure the TransformerIntegration can create a tf.models.Model instance."""
@@ -68,7 +78,8 @@ class TestTransformer(unittest.TestCase):
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                         batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -79,7 +90,8 @@ class TestTransformer(unittest.TestCase):
         self.assertTrue(os.path.exists('../models/TestTransformer/config/config.json'))
         self.assertTrue(os.path.exists('../models/TestTransformer/tokenizer/TestTransformer_tokenizer.subwords'))
         hparams = self.hparams
-        hparams['TOKENIZER'] = os.path.join('../models/TestTransformer', os.path.join('tokenizer', 'TestTransformer' + '_tokenizer'))
+        hparams['TOKENIZER'] = os.path.join('../models/TestTransformer',
+                                            os.path.join('tokenizer', 'TestTransformer' + '_tokenizer'))
         hparams['EPOCHS'] = hparams['EPOCHS'] + 1
         self.assertEqual(json.load(open('../models/TestTransformer/config/config.json')), hparams)
 
@@ -93,7 +105,8 @@ class TestTransformer(unittest.TestCase):
                                                  e_token=base.end_token, )
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size, batch_size=self.batch_size)
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                         batch_size=self.batch_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
