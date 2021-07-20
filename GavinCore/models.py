@@ -41,7 +41,10 @@ class TransformerAbstract(abc.ABC):
     @abc.abstractmethod
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None,
+                 metrics: typing.List = None):
+        if metrics is None:
+            self.metrics = ['accuracy']
         self.num_layers = num_layers
         self.units = units
         self.d_model = d_model
@@ -52,6 +55,7 @@ class TransformerAbstract(abc.ABC):
         self.start_token, self.end_token = [self.tokenizer.vocab_size + 1], [self.tokenizer.vocab_size + 2]
         self.vocab_size = self.tokenizer.vocab_size + 2
         self.default_dtype = tf.float32 if not mixed else tf.float16
+        self.metrics = metrics
         self.model = None
 
         self.name = name
@@ -125,7 +129,7 @@ class TransformerAbstract(abc.ABC):
         return [
             tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(self.log_dir, 'cp.ckpt'), save_weights_only=True,
                                                verbose=1),
-            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, profile_batch="500, 600"),
+            tf.keras.callbacks.TensorBoard(log_dir=self.log_dir),
             PredictCallback(tokenizer=self.tokenizer, start_token=self.start_token, end_token=self.end_token,
                             max_length=self.max_len,
                             log_dir=self.log_dir, wrapper_model=self)]
@@ -177,7 +181,7 @@ class TransformerAbstract(abc.ABC):
 
     def compile(self) -> None:
         """Compile the model attribute to allow for training."""
-        self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=['accuracy'])
+        self.model.compile(optimizer=self.get_optimizer(), loss=self.loss_function, metrics=self.metrics)
 
     def save_hparams(self):
         # Saving config
@@ -231,10 +235,7 @@ class TransformerAbstract(abc.ABC):
             callbacks: typing.List = None, validation_dataset: tf.data.Dataset = None) -> tf.keras.callbacks.History:
         """Call .fit() on the model attribute.
         Runs the train sequence for self.model"""
-        try:
-            self.compile()
-        except AttributeError:
-            print("Skipping Model Compiling: Model already compiled.")
+        self.compile()
         try:
             tf.keras.utils.plot_model(self.model,
                                       to_file=os.path.join(os.path.join(self.log_dir, 'images'), 'image.png'),
@@ -283,6 +284,8 @@ class TransformerIntegration(TransformerAbstract):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+        super(TransformerIntegration, self).__init__(num_layers, units, d_model, num_heads, dropout, max_len,
+                                                     base_log_dir, tokenizer, name, mixed, epochs, metadata)
         # Attributes
         self.num_layers = num_layers
         self.units = units
