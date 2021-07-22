@@ -135,7 +135,7 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
-        y_true = tf.reshape(y_true, shape=(-1, self.max_len))
+        y_true = tf.reshape(y_true, shape=(-1, self.max_len-1))
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True, reduction='none')(y_true, y_pred)
