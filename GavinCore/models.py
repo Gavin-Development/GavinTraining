@@ -138,7 +138,7 @@ class TransformerAbstract(abc.ABC):
         y_true = tf.reshape(y_true, shape=(-1, self.max_len-1))
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
-            from_logits=True, reduction='none')(y_true, y_pred)
+            from_logits=True, reduction='none')(y_true, y_pred[:, 1:])
 
         mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
         loss = tf.multiply(loss, mask)
