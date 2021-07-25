@@ -249,7 +249,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         assert d_model % self.num_heads == 0
 
-        self.depth = d_model // 2
+        self.depth = d_model // self.num_heads
 
         self.query_dense = tf.keras.layers.Dense(units=d_model)
         self.key_dense = tf.keras.layers.Dense(units=d_model)
@@ -262,8 +262,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return tf.transpose(inputs, perm=[0, 2, 1, 3])
 
     def call(self, inputs: Dict):
-        query, key, value, mask = inputs['query'], inputs['key'], inputs[
-            'value'], inputs['mask']
+        query, key, value, mask = (inputs['query'], inputs['key'],
+                                   inputs['value'], inputs['mask'])
         batch_size = tf.shape(query)[0]
 
         # linear layers
