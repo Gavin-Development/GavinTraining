@@ -45,6 +45,8 @@ class TransformerAbstract(abc.ABC):
                  metrics: typing.List = None):
         if metrics is None:
             self.metrics = ['accuracy']
+        else:
+            self.metrics = metrics
         self.num_layers = num_layers
         self.units = units
         self.d_model = d_model
@@ -55,7 +57,6 @@ class TransformerAbstract(abc.ABC):
         self.start_token, self.end_token = [self.tokenizer.vocab_size + 1], [self.tokenizer.vocab_size + 2]
         self.vocab_size = self.tokenizer.vocab_size + 2
         self.default_dtype = tf.float32 if not mixed else tf.float16
-        self.metrics = metrics
         self.model = None
 
         self.name = name
