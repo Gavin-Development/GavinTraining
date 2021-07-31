@@ -283,9 +283,9 @@ class TransformerIntegration(TransformerAbstract):
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None, metrics: typing.List = None):
         super(TransformerIntegration, self).__init__(num_layers, units, d_model, num_heads, dropout, max_len,
-                                                     base_log_dir, tokenizer, name, mixed, epochs, metadata)
+                                                     base_log_dir, tokenizer, name, mixed, epochs, metadata, metrics)
         # Attributes
         self.num_layers = num_layers
         self.units = units
@@ -500,13 +500,13 @@ class PreformerIntegration(TransformerIntegration):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
                  num_features: int, base_log_dir: typing.AnyStr,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None, metrics: typing.List = None):
         if num_features > d_model:
             raise ValueError(f"Value for Num_Features {num_features} must be LESS THAN or EQUAL to d_model {d_model}")
 
         self.num_features = num_features
         super().__init__(num_layers, units, d_model, num_heads, dropout, max_len, base_log_dir, tokenizer=tokenizer,
-                         name=name, mixed=mixed, epochs=epochs, metadata=metadata)
+                         name=name, mixed=mixed, epochs=epochs, metadata=metadata, metrics=metrics)
         self.config['NUM_FEATURES'] = self.num_features
         self.metrics = ['accuracy']
 
