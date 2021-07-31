@@ -69,13 +69,13 @@ if __name__ == "__main__":
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata)
+                               metadata=metadata, metrics=['accuracy'])
         else:
             NUM_FEATURES = int(input("RANDOM_FEATURES: "))
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata, num_features=NUM_FEATURES)
+                               metadata=metadata, num_features=NUM_FEATURES, metrics=['accuracy'])
         questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
