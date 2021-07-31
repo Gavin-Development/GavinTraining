@@ -1,3 +1,4 @@
+import numpy as np
 import tqdm
 import typing
 import pickle
@@ -24,13 +25,23 @@ def tokenized_read_thread(path: typing.AnyStr, reddit_set_max: int, s_token: typ
 
 
 def load_tokenized_data(max_samples: int, data_path: typing.AnyStr, tokenizer_name: typing.AnyStr,
-                        s_token: typing.List[int], e_token: typing.List[int]) -> typing.Tuple[typing.List[str], typing.List[str]]:
+                        s_token: typing.List[int], e_token: typing.List[int], max_len: int = None, legacy: bool = False) -> typing.Tuple[typing.List[str], typing.List[str]]:
     """Load tokenized data from the data files:
     {data_path}{tokenizer_name}.from
     {data_path}{tokenizer_name}.to these will be configurable eventually."""
-    with ProcessPoolExecutor(2) as executor:
-        inputs_fn = executor.submit(tokenized_read_thread, f"{data_path}{tokenizer_name}.from", max_samples, s_token, e_token, 0)
-        outputs_fn = executor.submit(tokenized_read_thread, f"{data_path}{tokenizer_name}.to", max_samples, s_token, e_token, 1)
-        executor.shutdown()
+    if not legacy and max_len is None:
+        raise Exception("Max Length can't be none when Legacy is false.")
+    if legacy:
+        with ProcessPoolExecutor(2) as executor:
+            inputs_fn = executor.submit(tokenized_read_thread, f"{data_path}{tokenizer_name}.from", max_samples, s_token, e_token, 0)
+            outputs_fn = executor.submit(tokenized_read_thread, f"{data_path}{tokenizer_name}.to", max_samples, s_token, e_token, 1)
+            executor.shutdown()
 
-    return inputs_fn.result(), outputs_fn.result()
+        return inputs_fn.result(), outputs_fn.result()
+    else:
+        import CustomPackages.LoadTrainData as LTD
+        inputs = LTD.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.from", s_token[0], e_token[0], max_len, 0)
+        outputs = LTD.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.to", s_token[0], e_token[0], max_len, 0)
+        inputs = np.asarray(inputs)
+        outputs = np.asarray(outputs)
+        return inputs, outputs
