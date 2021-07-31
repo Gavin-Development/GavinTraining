@@ -4,7 +4,7 @@ import json
 import shutil
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-from GavinCore.models import PreformerIntegration, tfds, tf
+from GavinCore.models import PerformerIntegration, tfds, tf
 from GavinCore.datasets import create_data_objects
 from DataParsers.load_data import load_tokenized_data
 from pathlib import Path
@@ -53,9 +53,9 @@ class TestPreformer(unittest.TestCase):
         tf.keras.backend.clear_session()  # Reduces the amount of memory this will use.
 
     def test_001_model_create(self):
-        """Make sure the PreformerIntegration can create a tf.models.Model instance."""
+        """Make sure the PerformerIntegration can create a tf.models.Model instance."""
         try:
-            base = PreformerIntegration(**self.config_for_models)
+            base = PerformerIntegration(**self.config_for_models)
             self.assertTrue(hasattr(base, "model"), "Model not created.")
             shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestPreformer')))
         except Exception as e:
@@ -63,7 +63,7 @@ class TestPreformer(unittest.TestCase):
 
     def test_002_hparams_return(self):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
-        base = PreformerIntegration(**self.config_for_models)
+        base = PerformerIntegration(**self.config_for_models)
         model_returned_hparams = base.get_hparams()
         shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestPreformer')))
         self.assertDictEqual(model_returned_hparams, self.hparams, f"Model Parameter mismatch.\n"
@@ -72,7 +72,7 @@ class TestPreformer(unittest.TestCase):
 
     def test_003_model_fit_save(self):
         """Ensure the model trains for at least 1 epoch without an exception."""
-        base = PreformerIntegration(**self.config_for_models)
+        base = PerformerIntegration(**self.config_for_models)
         questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
@@ -97,7 +97,7 @@ class TestPreformer(unittest.TestCase):
         self.assertEqual(json.load(open('../models/TestPreformer/config/config.json')), hparams)
 
     def test_004_model_load_fit(self):
-        base = PreformerIntegration.load_model('../models/', 'TestPreformer')
+        base = PerformerIntegration.load_model('../models/', 'TestPreformer')
 
         questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
@@ -115,7 +115,7 @@ class TestPreformer(unittest.TestCase):
             self.fail(f"Model fit failed: {e}")
 
     def test_005_model_callbacks(self):
-        base = PreformerIntegration.load_model('../models/', 'TestPreformer')
+        base = PerformerIntegration.load_model('../models/', 'TestPreformer')
 
         questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
@@ -133,7 +133,7 @@ class TestPreformer(unittest.TestCase):
             self.fail(f"Model fit failed: {e}")
 
     def test_006_model_predicting(self):
-        base = PreformerIntegration.load_model('../models/', 'TestPreformer')
+        base = PerformerIntegration.load_model('../models/', 'TestPreformer')
 
         try:
             reply = base.predict("This is a test.")
@@ -145,7 +145,7 @@ Reply: {reply}""")
 
     def test_007_model_projector_metadata(self):
         try:
-            base = PreformerIntegration(**self.config_for_models)
+            base = PerformerIntegration(**self.config_for_models)
             self.assertTrue(os.path.exists('../models/TestPreformer/metadata.tsv'))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
