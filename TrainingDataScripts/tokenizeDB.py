@@ -60,10 +60,15 @@ for database in databases:
                     t_comment = tokenizer.encode(comment)
                     t_comment = pickle.dumps(t_comment)
                     t_comment = base64.b64encode(t_comment)
-                    sql = """INSERT INTO tokenized_comment_data_new (parent_id, comment_id, parent_tokenized, comment_tokenized, subreddit, unix, score, tokenizer_name) VALUES ("{}", "{}", "{}", "{}", "{}", {}, {}, "{}");""".format(
-                        parent_id + '_' + subword_file.split('.')[0].replace('-', '_'), comment_id, t_parent, t_comment, subreddit, unix, score,
-                        subword_file.split('.')[0].replace('-', '_'))
+                    tokenizer_name = subword_file.split('.')[0].replace('-', '_')
+                    sql = """SELECT * FROM tokenized_comment_data WHERE tokenizer_name == '{}';""".format(tokenizer_name)
                     cursor.execute(sql)
+                    results = cursor.fetchone()
+                    if results is None:
+                        sql = """INSERT INTO tokenized_comment_data_new (parent_id, comment_id, parent_tokenized, comment_tokenized, subreddit, unix, score, tokenizer_name) VALUES ("{}", "{}", "{}", "{}", "{}", {}, {}, "{}");""".format(
+                            parent_id + '_' + subword_file.split('.')[0].replace('-', '_'), comment_id, t_parent, t_comment, subreddit, unix, score,
+                            tokenizer_name)
+                        cursor.execute(sql)
                     i += 1
         print(f"Starting Vacuum on: {database}")
         connection.commit()
