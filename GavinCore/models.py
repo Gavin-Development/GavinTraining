@@ -492,7 +492,7 @@ class TransformerIntegration(TransformerAbstract):
             name=name)
 
 
-class PreformerIntegration(TransformerIntegration):
+class PerformerIntegration(TransformerIntegration):
     """Improvement upon the original Transformer,
     the preformer seeks to greatly decrease the time and memory
     complexity of the original transformer model in terms of
@@ -509,7 +509,6 @@ class PreformerIntegration(TransformerIntegration):
         super().__init__(num_layers, units, d_model, num_heads, dropout, max_len, base_log_dir, tokenizer=tokenizer,
                          name=name, mixed=mixed, epochs=epochs, metadata=metadata, metrics=metrics)
         self.config['NUM_FEATURES'] = self.num_features
-        self.metrics = ['accuracy']
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
         """Encoder Layer
