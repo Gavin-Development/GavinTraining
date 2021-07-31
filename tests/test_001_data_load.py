@@ -18,6 +18,8 @@ class DataLoad(unittest.TestCase):
                                                      e_token=self.end_token, legacy=True)
             self.assertEqual(len(questions), self.max_samples//2)
             self.assertEqual(len(answers), self.max_samples//2)
+            self.assertEqual(type(answers), list)
+            self.assertEqual(type(questions), list)
         except Exception as e:
             self.fail(f"Legacy failed: {e}")
 
@@ -28,6 +30,10 @@ class DataLoad(unittest.TestCase):
                                                      tokenizer_name="Tokenizer-3",
                                                      s_token=self.start_token,
                                                      e_token=self.end_token, max_len=self.max_len)
+            self.assertEqual(len(questions), self.max_samples // 2)
+            self.assertEqual(len(answers), self.max_samples // 2)
+            self.assertEqual(type(answers), list)
+            self.assertEqual(type(questions), list)
         except Exception as e:
             self.fail(f"Legacy failed: {e}")
 
