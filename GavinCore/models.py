@@ -1,5 +1,6 @@
 import abc
 import os
+import random
 import typing
 import json
 import tensorflow as tf
@@ -284,7 +285,8 @@ class TransformerIntegration(TransformerAbstract):
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None, metrics: typing.List = None):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None,
+                 metrics: typing.List = None):
         super(TransformerIntegration, self).__init__(num_layers, units, d_model, num_heads, dropout, max_len,
                                                      base_log_dir, tokenizer, name, mixed, epochs, metadata, metrics)
         # Attributes
@@ -501,7 +503,8 @@ class PerformerIntegration(TransformerIntegration):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
                  num_features: int, base_log_dir: typing.AnyStr,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None, metrics: typing.List = None):
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, metadata=None,
+                 metrics: typing.List = None):
         if num_features > d_model:
             raise ValueError(f"Value for Num_Features {num_features} must be LESS THAN or EQUAL to d_model {d_model}")
 
@@ -582,8 +585,11 @@ class PerformerIntegration(TransformerIntegration):
         output = tf.expand_dims(self.start_token, 0)
         sentence = tf.keras.preprocessing.sequence.pad_sequences(sentence, maxlen=self.max_len, padding='post')
 
-        for i in range(self.max_len-1):
-            predictions = self.model(inputs=[sentence, tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.max_len, padding='post')], training=False)
+        for i in range(self.max_len - 1):
+            predictions = self.model(inputs=[sentence,
+                                             tf.keras.preprocessing.sequence.pad_sequences(output, maxlen=self.max_len,
+                                                                                           padding='post')],
+                                     training=False)
 
             # select the last word from the seq length dimension
             predictions = predictions[:, -1:, :]
