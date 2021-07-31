@@ -5,7 +5,7 @@ os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 if __name__ == "__main__":
-    from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PreformerIntegration
+    from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration
     from GavinBackend.GavinCore.datasets import create_data_objects
     from GavinBackend.DataParsers.load_data import load_tokenized_data
 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`]: ")
     if MODEL_TYPE.lower() == "performer":
-        MODEL_TYPE = PreformerIntegration
+        MODEL_TYPE = PerformerIntegration
     elif MODEL_TYPE.lower() == "transformer":
         MODEL_TYPE = TransformerIntegration
     else:
