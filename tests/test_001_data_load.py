@@ -17,12 +17,12 @@ class DataLoad(unittest.TestCase):
                                                      tokenizer_name="Tokenizer-3",
                                                      s_token=self.start_token,
                                                      e_token=self.end_token, legacy=True)
-            self.assertEqual(len(questions), self.max_samples//2)
-            self.assertEqual(len(answers), self.max_samples//2)
-            self.assertEqual(type(answers), list)
-            self.assertEqual(type(questions), list)
         except Exception as e:
             self.fail(f"Legacy failed: {e}")
+        self.assertEqual(len(questions), self.max_samples//2)
+        self.assertEqual(len(answers), self.max_samples//2)
+        self.assertEqual(type(answers), list)
+        self.assertEqual(type(questions), list)
 
     def test_002_CustomPackage_load(self):
         try:
@@ -31,10 +31,15 @@ class DataLoad(unittest.TestCase):
                                                      tokenizer_name="Tokenizer-3",
                                                      s_token=self.start_token,
                                                      e_token=self.end_token, max_len=self.max_len)
-            self.assertEqual(len(questions), self.max_samples // 2)
-            self.assertEqual(len(answers), self.max_samples // 2)
-            self.assertEqual(type(answers), np.ndarray)
-            self.assertEqual(type(questions), np.ndarray)
         except Exception as e:
-            self.fail(f"Legacy failed: {e}")
-
+            self.fail(f"Custom Load failed: {e}")
+        self.assertEqual(len(questions), self.max_samples // 2)
+        self.assertEqual(len(answers), self.max_samples // 2)
+        self.assertEqual(np.ndarray, type(questions),
+                         msg=f"type of questions is not of type {np.ndarray} but of type {type(questions)}")
+        self.assertEqual(np.ndarray, type(answers),
+                         msg=f"type of answers is not of type {np.ndarray} but of type {type(answers)}")
+        self.assertEqual((self.max_samples // 2, self.max_len), np.shape(questions),
+                         msg=f"Questions is not of size {(self.max_samples // 2, self.max_len)} but of size {np.size(questions)}")
+        self.assertEqual((self.max_samples // 2, self.max_len), np.shape(answers),
+                         msg=f"Answers is not of size {(self.max_samples // 2, self.max_len)} but of size {np.size(answers)}")
