@@ -77,9 +77,8 @@ class TestPreformer(unittest.TestCase):
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
-                                                 e_token=base.end_token, )
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
+                                                 e_token=base.end_token, max_len=base.max_len)
+
         dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
                                                          batch_size=self.batch_size)
 
@@ -104,9 +103,8 @@ class TestPreformer(unittest.TestCase):
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
-                                                 e_token=base.end_token, )
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
+                                                 e_token=base.end_token, max_len=base.max_len)
+
         dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
                                                          batch_size=self.batch_size)
 
@@ -123,9 +121,8 @@ class TestPreformer(unittest.TestCase):
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
                                                  s_token=base.start_token,
-                                                 e_token=base.end_token, )
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=base.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=base.max_len, padding='post')
+                                                 e_token=base.end_token, max_len=base.max_len)
+
         dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
                                                          batch_size=self.batch_size)
 
