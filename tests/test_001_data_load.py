@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 from DataParsers.load_data import load_tokenized_data
 
 
@@ -32,8 +33,8 @@ class DataLoad(unittest.TestCase):
                                                      e_token=self.end_token, max_len=self.max_len)
             self.assertEqual(len(questions), self.max_samples // 2)
             self.assertEqual(len(answers), self.max_samples // 2)
-            self.assertEqual(type(answers), list)
-            self.assertEqual(type(questions), list)
+            self.assertEqual(type(answers), np.ndarray)
+            self.assertEqual(type(questions), np.ndarray)
         except Exception as e:
             self.fail(f"Legacy failed: {e}")
 
