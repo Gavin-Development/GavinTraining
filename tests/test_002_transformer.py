@@ -118,3 +118,14 @@ class TestTransformer(unittest.TestCase):
             self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
+
+    def test_006_model_predicting(self):
+        base = TransformerIntegration.load_model('../models/', 'TestTransformer')
+
+        try:
+            reply = base.predict("This is a test.")
+            print(f"""\
+        Prompt: This is a test.
+        Reply: {reply}""")
+        except Exception as e:
+            self.fail(f"Model predict failed: {e}")
