@@ -12,8 +12,8 @@ if __name__ == "__main__":
     from GavinBackend.GavinCore.datasets import create_data_objects
     from GavinBackend.DataParsers.load_data import load_tokenized_data
 
-    MODEL_TYPE = "preformer"  # input("Please enter a Model Type [`preformer`, `transformer`]: ")
-    if MODEL_TYPE.lower() == "preformer":
+    MODEL_TYPE = "transformer"  # input("Please enter a Model Type [`preformer`, `transformer`]: ")
+    if MODEL_TYPE.lower() == "performer":
         MODEL_TYPE = PreformerIntegration
     elif MODEL_TYPE.lower() == "transformer":
         MODEL_TYPE = TransformerIntegration
