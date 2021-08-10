@@ -1,7 +1,6 @@
 import os
 import unittest
 import json
-import shutil
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from GavinCore.models import TransformerIntegration, tfds, tf
@@ -40,6 +39,7 @@ class TestTransformer(unittest.TestCase):
             'FLOAT16': False,
             'EPOCHS': 0
         }
+        self.save_freq = 100
         self.config_for_models = self.hparams.copy()
         self.config_for_models = {k.lower(): v for k, v in self.config_for_models.items()}
         self.config_for_models['max_len'] = self.config_for_models['max_length']
@@ -55,7 +55,6 @@ class TestTransformer(unittest.TestCase):
         try:
             base = TransformerIntegration(**self.config_for_models)
             self.assertTrue(hasattr(base, "model"), "Model not created.")
-            shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
 
@@ -63,7 +62,6 @@ class TestTransformer(unittest.TestCase):
         """Ensure that hyper-parameters built inside the model, match the users choice."""
         base = TransformerIntegration(**self.config_for_models)
         model_returned_hparams = base.get_hparams()
-        shutil.rmtree(os.path.join(BASE_DIR, os.path.join('models/', 'TestTransformer')))
         self.assertDictEqual(model_returned_hparams, self.hparams, f"Model Parameter mismatch.\n"
                                                                    f"Self: {self.hparams}\n"
                                                                    f"Model: {model_returned_hparams}")
@@ -129,3 +127,19 @@ class TestTransformer(unittest.TestCase):
         Reply: {reply}""")
         except Exception as e:
             self.fail(f"Model predict failed: {e}")
+
+    def test_007_model_save_freq(self):
+        base = TransformerIntegration(**self.config_for_models, save_freq=self.save_freq)
+        questions, answers = load_tokenized_data(max_samples=self.max_samples,
+                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
+                                                 tokenizer_name="Tokenizer-3",
+                                                 s_token=base.start_token,
+                                                 e_token=base.end_token, max_len=base.max_len)
+
+        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                         batch_size=self.batch_size)
+        try:
+            base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
+                     epochs=1)
+        except Exception as err:
+            self.fail(f"Save frequency parameter failed. {err}")
