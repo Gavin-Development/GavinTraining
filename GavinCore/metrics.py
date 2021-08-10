@@ -1,5 +1,5 @@
 import typing
-from .models import tf, TransformerIntegration, PerformerIntegration
+from .models import tf
 
 
 class Precision(tf.keras.metrics.Precision):
