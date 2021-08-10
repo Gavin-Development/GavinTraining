@@ -1,3 +1,8 @@
+SAVE_FREQ = input("Press Enter to save by epoch, or type a number to save by batch: ")
+if SAVE_FREQ == "\n":
+    SAVE_FREQ = 'epoch'
+else:
+    SAVE_FREQ = int(SAVE_FREQ)
 import os
 import json
 
@@ -58,13 +63,13 @@ if __name__ == "__main__":
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata)
+                               metadata=metadata, save_freq=SAVE_FREQ)
         else:
             NUM_FEATURES = 128
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata, num_features=NUM_FEATURES)
+                               metadata=metadata, num_features=NUM_FEATURES, save_freq=SAVE_FREQ)
         questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                                  data_path=".",
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
