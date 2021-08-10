@@ -8,6 +8,7 @@ if __name__ == "__main__":
     from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration
     from GavinBackend.GavinCore.datasets import create_data_objects
     from GavinBackend.DataParsers.load_data import load_tokenized_data
+    from GavinBackend.GavinCore.metrics import Perplexity
 
     physical_devices = tf.config.list_physical_devices('GPU')
     try:
@@ -69,7 +70,7 @@ if __name__ == "__main__":
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata, metrics=['accuracy'])
+                               metadata=metadata, metrics=['accuracy', Perplexity(max_len=MAX_LENGTH)])
         else:
             NUM_FEATURES = int(input("RANDOM_FEATURES: "))
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
@@ -80,7 +81,7 @@ if __name__ == "__main__":
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
                                                  s_token=model.start_token,
-                                                 e_token=model.end_token, )
+                                                 e_token=model.end_token, legacy=True)
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
