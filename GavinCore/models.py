@@ -462,7 +462,7 @@ class PerformerIntegration(TransformerIntegration):
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
                  num_features: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0,
+                 name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
                  metadata=None, metrics: typing.List = None):
         if num_features > d_model:
