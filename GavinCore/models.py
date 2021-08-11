@@ -144,15 +144,19 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
-        y_true = tf.reshape(y_true, shape=(-1, self.max_len))
+        with tf.control_dependencies([
+            tf.Assert(tf.debugging.is_numeric_tensor(y_pred), [y_pred]),
+            tf.debugging.assert_non_negative(y_true, [y_true]),
+        ]):
+            y_true = tf.reshape(y_true, shape=(-1, self.max_len))
 
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(
-            from_logits=True, reduction='none')(y_true, y_pred)
+            loss = tf.keras.losses.SparseCategoricalCrossentropy(
+                from_logits=True, reduction='none')(y_true, y_pred)
 
-        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
-        loss = tf.multiply(loss, mask)
+            mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+            loss = tf.multiply(loss, mask)
 
-        return tf.reduce_mean(loss)
+            return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
         sentence = preprocess_sentence(sentence)
