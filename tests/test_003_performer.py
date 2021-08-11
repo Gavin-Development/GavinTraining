@@ -111,7 +111,7 @@ class TestPreformer(unittest.TestCase):
                      epochs=1, callbacks=base.get_default_callbacks()[:-1])
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
-
+        base.model.summary()
     def test_005_model_callbacks(self):
         base = PerformerIntegration.load_model('../models/', 'TestPreformer')
 
