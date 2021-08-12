@@ -86,6 +86,9 @@ class TransformerAbstract(abc.ABC):
             metadata = {}
         self.metadata = metadata
 
+        self.cce = tf.keras.losses.CategoricalCrossentropy(
+            reduction='none', from_logits=True)
+
         self.setup_model()
 
     @abc.abstractmethod
@@ -132,7 +135,7 @@ class TransformerAbstract(abc.ABC):
 
     def get_optimizer(self) -> tf.keras.optimizers.Adam:
         learning_rate = CustomSchedule(self.d_model)
-        return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9)
+        return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9, clipnorm=5.0)
 
     def get_default_callbacks(self) -> typing.List:
         return [
@@ -144,15 +147,15 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
+        y_true = tf.cast(y_true, tf.float32)
         with tf.control_dependencies([
             tf.Assert(tf.debugging.is_numeric_tensor(y_pred), [y_pred]),
             tf.debugging.assert_non_negative(y_true, [y_true]),
+            tf.debugging.assert_all_finite(y_true, "True values contains NaNs."),
+            tf.debugging.assert_all_finite(y_pred, "Pred values contains NaNs."),
         ]):
-            y_true = tf.reshape(y_true, shape=(-1, self.max_len))
 
-            loss = tf.keras.losses.SparseCategoricalCrossentropy(
-                from_logits=True, reduction='none')(y_true, y_pred)
-
+            loss = self.cce(y_true, y_pred)
             mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
             loss = tf.multiply(loss, mask)
 
@@ -465,7 +468,8 @@ class PerformerIntegration(TransformerIntegration):
     sequence length."""
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
-                 num_features: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
+                 num_features: int, base_log_dir: typing.AnyStr,
+                 tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
                  metadata=None, metrics: typing.List = None):
@@ -473,8 +477,10 @@ class PerformerIntegration(TransformerIntegration):
             raise ValueError(f"Value for Num_Features {num_features} must be LESS THAN or EQUAL to d_model {d_model}")
 
         self.num_features = num_features
-        super().__init__(num_layers=num_layers, units=units, d_model=d_model, num_heads=num_heads, dropout=dropout, max_len=max_len,
-                         base_log_dir=base_log_dir, tokenizer=tokenizer, name=name, mixed=mixed, epochs=epochs, save_freq=save_freq,
+        super(PerformerIntegration, self).__init__(num_layers=num_layers, units=units, d_model=d_model, num_heads=num_heads, dropout=dropout,
+                         max_len=max_len,
+                         base_log_dir=base_log_dir, tokenizer=tokenizer, name=name, mixed=mixed, epochs=epochs,
+                         save_freq=save_freq,
                          metadata=metadata, metrics=metrics)
         self.config['NUM_FEATURES'] = self.num_features
 
