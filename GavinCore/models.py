@@ -154,7 +154,6 @@ class TransformerAbstract(abc.ABC):
             tf.debugging.assert_all_finite(y_true, "True values contains NaNs."),
             tf.debugging.assert_all_finite(y_pred, "Pred values contains NaNs."),
         ]):
-
             loss = self.cce(y_true, y_pred)
             mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
             loss = tf.multiply(loss, mask)
@@ -477,11 +476,13 @@ class PerformerIntegration(TransformerIntegration):
             raise ValueError(f"Value for Num_Features {num_features} must be LESS THAN or EQUAL to d_model {d_model}")
 
         self.num_features = num_features
-        super(PerformerIntegration, self).__init__(num_layers=num_layers, units=units, d_model=d_model, num_heads=num_heads, dropout=dropout,
-                         max_len=max_len,
-                         base_log_dir=base_log_dir, tokenizer=tokenizer, name=name, mixed=mixed, epochs=epochs,
-                         save_freq=save_freq,
-                         metadata=metadata, metrics=metrics)
+        super(PerformerIntegration, self).__init__(num_layers=num_layers, units=units, d_model=d_model,
+                                                   num_heads=num_heads, dropout=dropout,
+                                                   max_len=max_len,
+                                                   base_log_dir=base_log_dir, tokenizer=tokenizer, name=name,
+                                                   mixed=mixed, epochs=epochs,
+                                                   save_freq=save_freq,
+                                                   metadata=metadata, metrics=metrics)
         self.config['NUM_FEATURES'] = self.num_features
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
