@@ -1,5 +1,4 @@
-import typing
-from .models import tf
+from .utils import tf, convert_to_probabilities
 
 
 class Precision(tf.keras.metrics.Precision):
@@ -20,7 +19,7 @@ class Precision(tf.keras.metrics.Precision):
 class Perplexity(tf.keras.metrics.Metric):
     def __init__(self, max_len: int, **kwargs):
         super(Perplexity, self).__init__(**kwargs)
-        self.cross_entropy = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+        self.cee = tf.keras.losses.CategoricalCrossentropy(from_logits=True, reduction='none')
         self.max_len = max_len
         self.perplexity = self.add_weight(name='p', initializer="zeros")
 
@@ -28,10 +27,8 @@ class Perplexity(tf.keras.metrics.Metric):
         return self.perplexity
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        y_true = tf.reshape(y_true, shape=(-1, self.max_len))
-
-        loss = self.cross_entropy(y_true, y_pred)
-        mask = tf.cast(tf.not_equal(y_true, 0), y_pred.dtype)
-        loss = tf.multiply(loss, mask)
+        y_true = tf.py_function(convert_to_probabilities, [y_true], y_true.dtype)
+        y_true = tf.cast(y_true, y_pred.dtype)
+        loss = self.cee(y_true, y_pred)
         loss = tf.reduce_mean(loss)
         self.perplexity.assign_add(tf.exp(loss))
