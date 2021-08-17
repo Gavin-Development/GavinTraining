@@ -159,12 +159,7 @@ class TransformerAbstract(abc.ABC):
             tf.debugging.assert_all_finite(y_pred, "Pred values contains NaNs."),
             tf.debugging.assert_equal(tf.shape(y_pred), tf.shape(y_true), message="y_pred & y_true shapes are not equal.")
         ]):
-            # y_true = tf.reshape(y_true, shape=(-1, self.max_len))
-
             loss = self.cce(y_true, y_pred)
-            # mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
-            # loss = tf.multiply(loss, mask)
-            # breakpoint()
             return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
