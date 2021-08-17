@@ -2,10 +2,10 @@ import abc
 import os
 import typing
 import json
-import tensorflow as tf
 import tensorflow_datasets as tfds
 
 from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding, MultiHeadPreformerAttention
+from .utils import tf, convert_to_probabilities
 from .preprocessing.text import preprocess_sentence
 from .callbacks import PredictCallback
 from tensorboard.plugins import projector
@@ -38,7 +38,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
 
 class TransformerAbstract(abc.ABC):
-    def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float,
+    def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, batch_size: int,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
@@ -58,6 +58,7 @@ class TransformerAbstract(abc.ABC):
         self.vocab_size = self.tokenizer.vocab_size + 2
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.save_freq = save_freq
+        self.batch_size = batch_size
         self.model = None
 
         self.name = name
@@ -80,7 +81,9 @@ class TransformerAbstract(abc.ABC):
             'TOKENIZER': self.tokenizer,
             'MODEL_NAME': self.name,
             'FLOAT16': True if self.default_dtype == tf.float16 else False,
-            'EPOCHS': epochs
+            'EPOCHS': epochs,
+            'SAVE_FREQ': save_freq,
+            'BATCH_SIZE': batch_size
         }
         if metadata is None:
             metadata = {}
@@ -147,17 +150,21 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
+        y_true = tf.py_function(convert_to_probabilities, [y_true], tf.int32)
         y_true = tf.cast(y_true, tf.float32)
         with tf.control_dependencies([
             tf.Assert(tf.debugging.is_numeric_tensor(y_pred), [y_pred]),
             tf.debugging.assert_non_negative(y_true, [y_true]),
             tf.debugging.assert_all_finite(y_true, "True values contains NaNs."),
             tf.debugging.assert_all_finite(y_pred, "Pred values contains NaNs."),
+            tf.debugging.assert_equal(tf.shape(y_pred), tf.shape(y_true), message="y_pred & y_true shapes are not equal.")
         ]):
-            loss = self.cce(y_true, y_pred)
-            mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
-            loss = tf.multiply(loss, mask)
+            # y_true = tf.reshape(y_true, shape=(-1, self.max_len))
 
+            loss = self.cce(y_true, y_pred)
+            # mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+            # loss = tf.multiply(loss, mask)
+            # breakpoint()
             return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
@@ -467,7 +474,7 @@ class PerformerIntegration(TransformerIntegration):
     sequence length."""
 
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
-                 num_features: int, base_log_dir: typing.AnyStr,
+                 num_features: int, base_log_dir: typing.AnyStr, batch_size: int,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
                  name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
@@ -482,7 +489,7 @@ class PerformerIntegration(TransformerIntegration):
                                                    base_log_dir=base_log_dir, tokenizer=tokenizer, name=name,
                                                    mixed=mixed, epochs=epochs,
                                                    save_freq=save_freq,
-                                                   metadata=metadata, metrics=metrics)
+                                                   metadata=metadata, metrics=metrics, batch_size=batch_size)
         self.config['NUM_FEATURES'] = self.num_features
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
