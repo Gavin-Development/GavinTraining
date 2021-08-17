@@ -8,7 +8,7 @@ def convert_to_probabilities(y_true, vocab_size) -> tf.Tensor:
     Where 1 sentence looks like, [[0,1,0], [1,0,0], [1,0,0]], where the vocab size here is 3."""
     shape = (y_true.shape[0], y_true.shape[1], vocab_size)
     new_y_true = np.zeros(shape=shape, dtype=np.int32)
-    y_true = tf.multiply(y_true, tf.cast(tf.not_equal(y_true, 0), y_true.dtype))
+    # y_true = tf.multiply(y_true, tf.cast(tf.not_equal(y_true, 0), y_true.dtype))
     for sentence in range(0, y_true.shape[0] - 1):
         for Index in range(0, y_true.shape[1] - 1):
             vocab_id = y_true[sentence][Index] - 1
