@@ -3,7 +3,8 @@ import unittest
 import json
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-from GavinCore.models import TransformerIntegration, tfds, tf, PerformerIntegration
+from GavinCore.models import TransformerIntegration, tfds, PerformerIntegration
+from GavinCore.utils import tf
 from GavinCore.datasets import create_data_objects
 from GavinCore.metrics import Perplexity, Precision
 from DataParsers.load_data import load_tokenized_data
@@ -37,7 +38,8 @@ class Metrics(unittest.TestCase):
             'TOKENIZER': self.tokenizer,
             'MODEL_NAME': "TestTransformer",
             'FLOAT16': False,
-            'EPOCHS': 0
+            'EPOCHS': 0,
+            'BATCH_SIZE': self.batch_size
         }
         self.config_for_models = self.hparams.copy()
         self.config_for_models = {k.lower(): v for k, v in self.config_for_models.items()}

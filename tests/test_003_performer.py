@@ -3,7 +3,8 @@ import unittest
 import json
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-from GavinCore.models import PerformerIntegration, tfds, tf
+from GavinCore.models import PerformerIntegration, tfds
+from GavinCore.utils import tf
 from GavinCore.datasets import create_data_objects
 from DataParsers.load_data import load_tokenized_data
 from pathlib import Path
@@ -38,7 +39,8 @@ class TestPreformer(unittest.TestCase):
             'TOKENIZER': self.tokenizer,
             'MODEL_NAME': "TestPreformer",
             'FLOAT16': False,
-            'EPOCHS': 0
+            'EPOCHS': 0,
+            'BATCH_SIZE': self.batch_size
         }
         self.save_freq = 100
         self.config_for_models = self.hparams.copy()

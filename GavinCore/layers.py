@@ -1,8 +1,6 @@
-from pprint import pprint
-
 from tensorflow.python.keras.utils import tf_utils
 
-from .models import tf
+from .utils import tf
 from typing import Dict
 
 
