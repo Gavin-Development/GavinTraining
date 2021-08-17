@@ -150,7 +150,7 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
-        y_true = tf.py_function(convert_to_probabilities, [y_true], tf.int32)
+        y_true = tf.py_function(convert_to_probabilities, [y_true, self.vocab_size], tf.int32)
         y_true = tf.cast(y_true, tf.float32)
         with tf.control_dependencies([
             tf.Assert(tf.debugging.is_numeric_tensor(y_pred), [y_pred]),
