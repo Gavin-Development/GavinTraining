@@ -40,6 +40,7 @@ class TestPreformer(unittest.TestCase):
             'MODEL_NAME': "TestPreformer",
             'FLOAT16': False,
             'EPOCHS': 0,
+            'SAVE_FREQ': 'epoch',
             'BATCH_SIZE': self.batch_size
         }
         self.save_freq = 100
@@ -152,7 +153,7 @@ Reply: {reply}""")
             self.fail(f"Model creation failed: {e}")
 
     def test_008_model_save_freq(self):
-        base = PerformerIntegration(**self.config_for_models, save_freq=self.save_freq)
+        base = PerformerIntegration(**self.config_for_models)
         questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",

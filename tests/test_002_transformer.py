@@ -39,6 +39,7 @@ class TestTransformer(unittest.TestCase):
             'MODEL_NAME': "TestTransformer",
             'FLOAT16': False,
             'EPOCHS': 0,
+            'SAVE_FREQ': 'epoch',
             'BATCH_SIZE': self.batch_size
         }
         self.save_freq = 100
@@ -132,7 +133,7 @@ class TestTransformer(unittest.TestCase):
             self.fail(f"Model predict failed: {e}")
 
     def test_007_model_save_freq(self):
-        base = TransformerIntegration(**self.config_for_models, save_freq=self.save_freq)
+        base = TransformerIntegration(**self.config_for_models)
         questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name="Tokenizer-3",
