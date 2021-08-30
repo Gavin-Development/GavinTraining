@@ -150,17 +150,9 @@ class TransformerAbstract(abc.ABC):
                             log_dir=self.log_dir, wrapper_model=self)]
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
-        y_true = tf.py_function(convert_to_probabilities, [y_true, self.vocab_size], tf.int32)
         y_true = tf.cast(y_true, tf.float32)
-        with tf.control_dependencies([
-            tf.Assert(tf.debugging.is_numeric_tensor(y_pred), [y_pred]),
-            tf.debugging.assert_non_negative(y_true, [y_true]),
-            tf.debugging.assert_all_finite(y_true, "True values contains NaNs."),
-            tf.debugging.assert_all_finite(y_pred, "Pred values contains NaNs."),
-            tf.debugging.assert_equal(tf.shape(y_pred), tf.shape(y_true), message="y_pred & y_true shapes are not equal.")
-        ]):
-            loss = self.cce(y_true, y_pred)
-            return tf.reduce_mean(loss)
+        loss = self.cce(y_true, y_pred)
+        return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
         sentence = preprocess_sentence(sentence)
