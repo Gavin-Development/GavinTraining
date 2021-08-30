@@ -5,11 +5,17 @@ import json
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from GavinCore.models import PerformerIntegration, tfds
 from GavinCore.utils import tf
-from GavinCore.datasets import create_data_objects
+from GavinCore.datasets import DatasetAPICreator
 from DataParsers.load_data import load_tokenized_data
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+tf.debugging.experimental.enable_dump_debug_info(
+    "./models/debug_info/tfdbg2_logdir",
+    tensor_debug_mode="FULL_HEALTH",
+    circular_buffer_size=-1
+)
 
 physical_devices = tf.config.list_physical_devices('GPU')
 try:
@@ -80,8 +86,8 @@ class TestPreformer(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size, vocab_size=base.vocab_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -106,8 +112,8 @@ class TestPreformer(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size, vocab_size=base.vocab_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -125,8 +131,8 @@ class TestPreformer(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size, vocab_size=base.vocab_size)
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
@@ -160,8 +166,8 @@ Reply: {reply}""")
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size, vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)

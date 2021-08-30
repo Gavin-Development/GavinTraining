@@ -1,56 +1,59 @@
+import os
 from .preprocessing.text import np
 from .models import tf
 
 
-def create_data_objects(questions, answers, buffer_size, batch_size):
-    sizes = (len(questions), len(answers))
-    questions_train = questions[0: int(sizes[0] * .80)]
-    questions_val = questions[int(sizes[0] * 0.80):]
-    answers_train = answers[0: int(sizes[1] * .80)]
-    answers_val = answers[int(sizes[1] * .80):]
+class DatasetAPICreator:
+    def __init__(self, questions: list, answers: list, buffer_size: int, batch_size: int, vocab_size: int):
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
+        self.questions_train = questions
+        self.answers_train = answers
+        self.vocab_size = vocab_size
 
-    dec_inputs_train = answers_train.copy()
-    dec_inputs_train[:, -1] = 0
-    dec_inputs_val = answers_val.copy()
-    dec_inputs_val[:, -1] = 0
-    
-    outputs_train = answers_train.copy()
-    outputs_train[:, 0] = 0
-    outputs_train = np.roll(outputs_train.copy(), -1)  # Roll back values -1 to not leave an empty value.
-    outputs_val = answers_val.copy()
-    outputs_val[:, 0] = 0
-    del answers_train, answers_val
-    # decoder inputs use the previous target as input
-    # remove s_token from targets
-    # print("Beginning Dataset Shuffling, Batching and Prefetch.")
-    dataset_t = tf.data.Dataset.from_tensor_slices((
-        {
-            'inputs': questions_train,  # Source
-            'dec_inputs': dec_inputs_train  # Targets
-        },
-        {
-            'outputs': outputs_train  # Outputs
-        }))
-    dataset_v = tf.data.Dataset.from_tensor_slices((
-        {
-            'inputs': questions_val,  # Source
-            'dec_inputs': dec_inputs_val  # Targets
-        },
-        {
-            'outputs': outputs_val  # Outputs
-        }))
+    def change_to_probabilities(self, first_part, second_part):
+        outputs = second_part['outputs'].eval(session=tf.compat.v1.Session(), feed_dict={second_part['outputs'].name: np.zeros(shape=(self.batch_size, 52), dtype=np.int32)})
+        new_outputs = np.zeros(shape=(self.batch_size, outputs.shape[1], self.vocab_size), dtype=np.int32)
+        for sentence in range(0, self.batch_size-1):
+            for Index in range(0, new_outputs.shape[0]-1):
+                vocab_id = outputs[sentence][Index]-1
+                if vocab_id == self.vocab_size-1:
+                    break
+                new_outputs[sentence][Index][vocab_id] = 1
+        second_part = {'outputs': new_outputs}
+        return first_part, second_part
 
-    dataset_t = dataset_t.cache()
-    dataset_v = dataset_v.cache()
-    dataset_t = dataset_t.shuffle(buffer_size)
-    dataset_v = dataset_v.shuffle(buffer_size)
-    dataset_t = dataset_t.batch(batch_size)
-    dataset_v = dataset_v.batch(batch_size)
-    dataset_t = dataset_t.prefetch(tf.data.experimental.AUTOTUNE)
-    dataset_v = dataset_v.prefetch(tf.data.experimental.AUTOTUNE)
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-    dataset_t.with_options(options)
-    dataset_v.with_options(options)
+    @classmethod
+    def create_data_objects(cls, questions: list, answers: list, buffer_size: int, batch_size: int, vocab_size: int):
+        self = cls(questions, answers, buffer_size, batch_size, vocab_size)
 
-    return dataset_t, dataset_v
+        dec_inputs_train = self.answers_train.copy()
+        dec_inputs_train[:, -1] = 0
+        outputs_train = self.answers_train.copy()
+        outputs_train[:, 0] = 0
+        outputs_train = np.roll(outputs_train.copy(), -1)  # Roll back values -1 to not leave an empty value.
+        del self.answers_train
+        # decoder inputs use the previous target as input
+        # remove s_token from targets
+        # print("Beginning Dataset Shuffling, Batching and Prefetch.")
+        dataset_all = tf.data.Dataset.from_tensor_slices((
+            {
+                'inputs': self.questions_train,  # Source
+                'dec_inputs': dec_inputs_train  # Targets
+            },
+            {
+                'outputs': outputs_train  # Outputs
+            }))
+        dataset_all = dataset_all.shuffle(self.buffer_size)
+        dataset_all = dataset_all.batch(self.batch_size).map(self.change_to_probabilities, num_parallel_calls=os.cpu_count())
+        dataset_all = dataset_all.cache()
+        dataset_all = dataset_all.prefetch(tf.data.experimental.AUTOTUNE)
+        options = tf.data.Options()
+        options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+        dataset_all.with_options(options)
+
+        dataset_t = dataset_all.take(int(len(self.questions_train)*.8))
+        dataset_v = dataset_all.skip(int(len(self.questions_train)*.8))
+        del dataset_all
+
+        return dataset_t, dataset_v
