@@ -89,7 +89,7 @@ class TransformerAbstract(abc.ABC):
             metadata = {}
         self.metadata = metadata
 
-        self.cce = tf.keras.losses.CategoricalCrossentropy(
+        self.scce = tf.keras.losses.SparseCategoricalCrossentropy(
             reduction='none', from_logits=True)
 
         self.setup_model()
@@ -151,7 +151,7 @@ class TransformerAbstract(abc.ABC):
 
     def loss_function(self, y_true, y_pred) -> tf.Tensor:
         y_true = tf.cast(y_true, tf.float32)
-        loss = self.cce(y_true, y_pred)
+        loss = self.scce(y_true, y_pred)
         return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
