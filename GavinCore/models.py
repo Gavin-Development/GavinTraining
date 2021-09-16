@@ -8,6 +8,7 @@ from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding,
 from .utils import tf, convert_to_probabilities
 from .preprocessing.text import preprocess_sentence
 from .callbacks import PredictCallback
+from .losses import SparseCategoricalCrossentropy
 from tensorboard.plugins import projector
 
 
@@ -149,9 +150,13 @@ class TransformerAbstract(abc.ABC):
                             max_length=self.max_len,
                             log_dir=self.log_dir, wrapper_model=self)]
 
-    def loss_function(self, y_true, y_pred) -> tf.Tensor:
+    @staticmethod
+    def loss_function(y_true, y_pred) -> tf.Tensor:
         y_true = tf.cast(y_true, tf.float32)
-        loss = self.scce(y_true, y_pred)
+        # y_pred = tf.cast(tf.argmax(y_pred, axis=2), tf.float32)
+        # loss = self.scce(y_true, y_pred)
+        loss = SparseCategoricalCrossentropy(y_true, y_pred)
+        # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=tf.add(y_pred, 5e-6), labels=y_true)
         return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
@@ -311,7 +316,7 @@ class TransformerIntegration(TransformerAbstract):
 
         dec_outputs = self.decoder()(inputs=[dec_inputs, enc_outputs, look_ahead_mask, dec_padding_mask])
 
-        outputs = tf.keras.layers.Dense(units=self.vocab_size, name="outputs")(dec_outputs)
+        outputs = tf.keras.layers.Dense(units=self.vocab_size, name="outputs", activation='softmax')(dec_outputs)
 
         self.model = tf.keras.Model(inputs=[inputs, dec_inputs], outputs=outputs, name=self.name)
 
