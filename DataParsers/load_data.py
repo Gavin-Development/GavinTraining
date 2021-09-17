@@ -1,10 +1,16 @@
+import base64
+import pickle
+import typing
+import sys
+import os
+from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor
+
 import numpy as np
 import tqdm
-import typing
-import pickle
-import base64
 
-from concurrent.futures import ProcessPoolExecutor
+path = Path(__file__).resolve().parent.parent
+sys.path.append(os.path.join(str(path), 'CustomPackages'))
 
 
 def tokenized_read_thread(path: typing.AnyStr, reddit_set_max: int, s_token: typing.List[int], e_token: typing.List[int], thread_id: int = 0):
@@ -39,9 +45,9 @@ def load_tokenized_data(max_samples: int, data_path: typing.AnyStr, tokenizer_na
 
         return inputs_fn.result(), outputs_fn.result()
     else:
-        import CustomPackages.LoadTrainData as LTD
-        inputs = LTD.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.from", s_token[0], e_token[0], max_len, 0)
-        outputs = LTD.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.to", s_token[0], e_token[0], max_len, 0)
+        import LoadTrainData
+        inputs = LoadTrainData.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.from", s_token[0], e_token[0], max_len, 0)
+        outputs = LoadTrainData.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.to", s_token[0], e_token[0], max_len, 0)
         inputs = np.asarray(inputs)
         outputs = np.asarray(outputs)
         return inputs, outputs
