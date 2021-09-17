@@ -6,7 +6,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 if __name__ == "__main__":
     from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration
-    from GavinBackend.GavinCore.datasets import create_data_objects
+    from GavinBackend.GavinCore.datasets import DatasetAPICreator
     from GavinBackend.DataParsers.load_data import load_tokenized_data
     from GavinBackend.GavinCore.metrics import Perplexity
 
@@ -49,11 +49,12 @@ if __name__ == "__main__":
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
                                                  s_token=model.start_token,
-                                                 e_token=model.end_token,)
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
-                                                         batch_size=BATCH_SIZE)
+                                                 e_token=model.end_token, )
+        # questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
+        # answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
+                                                                           batch_size=BATCH_SIZE,
+                                                                           vocab_size=model.vocab_size)
         callbacks = model.get_default_callbacks()
         del callbacks[1]  # Have to remove tensorboard, due to access violation errors
         callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=model.log_dir))  # Add tensorboard without profile
@@ -65,18 +66,28 @@ if __name__ == "__main__":
         NUM_HEADS = int(input("NUM_HEADS: "))
         UNITS = int(input("UNITS: "))
         DROPOUT = float(input("DROPOUT: "))
+        SAVE_FREQ = input("Press Enter to save by epoch, or type a number to save by batch: ")
+        if SAVE_FREQ == "\n" or SAVE_FREQ == "":
+            SAVE_FREQ = 'epoch'
+        else:
+            SAVE_FREQ = int(SAVE_FREQ)
+
         metadata = {"MAX_SAMPLES": MAX_SAMPLES, "BATCH_SIZE": BATCH_SIZE, "BUFFER_SIZE": BUFFER_SIZE}
         if MODEL_TYPE == TransformerIntegration:
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata, metrics=['accuracy', Perplexity(max_len=MAX_LENGTH)])
+                               metadata=metadata,
+                               metrics=['accuracy', Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
+                               save_freq=SAVE_FREQ)
         else:
             NUM_FEATURES = int(input("RANDOM_FEATURES: "))
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                               metadata=metadata, num_features=NUM_FEATURES, metrics=['accuracy'])
+                               metadata=metadata, num_features=NUM_FEATURES,
+                               metrics=['accuracy', Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
+                               save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
         questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
@@ -84,10 +95,11 @@ if __name__ == "__main__":
                                                  e_token=model.end_token, legacy=True)
         questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
         answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
-                                                         batch_size=BATCH_SIZE)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
+                                                                           batch_size=BATCH_SIZE, vocab_size=model.vocab_size)
 
         callbacks = model.get_default_callbacks()
         del callbacks[1]  # Have to remove tensorboard, due to access violation errors
         callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=model.log_dir))  # Add tensorboard without profile
         model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
+        model.model.summary()
