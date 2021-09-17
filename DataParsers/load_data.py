@@ -51,9 +51,9 @@ def load_tokenized_data(max_samples: int, data_path: typing.AnyStr, tokenizer_na
 
         return inputs_fn.result(), outputs_fn.result()
     else:
-        import LoadTrainData
-        inputs = LoadTrainData.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.from", s_token[0], e_token[0], max_len, 0)
-        outputs = LoadTrainData.LoadTrainDataST(max_samples//2, f"{data_path}", f"{tokenizer_name}.to", s_token[0], e_token[0], max_len, 0)
+        import GavinBackendDatasetUtils
+        inputs = GavinBackendDatasetUtils.LoadTrainDataST_Legacy(max_samples//2, f"{data_path}", f"{tokenizer_name}.from", s_token[0], e_token[0], max_len, 0)
+        outputs = GavinBackendDatasetUtils.LoadTrainDataST_Legacy(max_samples//2, f"{data_path}", f"{tokenizer_name}.to", s_token[0], e_token[0], max_len, 0)
         inputs = np.asarray(inputs)
         outputs = np.asarray(outputs)
         return inputs, outputs
