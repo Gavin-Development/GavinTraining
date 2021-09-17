@@ -121,8 +121,8 @@ if __name__ == "__main__":
         paired_rows = 0
 
         with open(f"D:\\Datasets\\reddit_data\\{timeFrame[:4]}\\RC_{timeFrame}.zst", "rb") as f:
-            dctx = zstandard.ZstdDecompressor()
-            stream_reader = dctx.stream_reader(f)
+            dctx = zstandard.ZstdDecompressor(max_window_size=2147483648)
+            stream_reader = dctx.stream_reader(f, read_size=int(1.953e+6))
             text_stream = io.TextIOWrapper(stream_reader, encoding='utf-8')
             for row in text_stream:
                 row_counter += 1
