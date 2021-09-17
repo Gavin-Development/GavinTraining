@@ -83,7 +83,7 @@ class TestTransformer(unittest.TestCase):
 
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
-                     epochs=1)
+                     epochs=1, callbacks=base.get_default_callbacks()[:-1])
         except Exception as e:
             self.fail(f"Model fit failed: {e}")
         base.save_hparams()
