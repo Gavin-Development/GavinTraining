@@ -97,7 +97,7 @@ class Metrics(unittest.TestCase):
 
     def test_003_perplexity_metric_transformer(self):
         try:
-            base = TransformerIntegration(**self.config_for_models, metrics=[Perplexity(max_len=self.hparams['MAX_LENGTH'])])
+            base = TransformerIntegration(**self.config_for_models, metrics=[Perplexity(max_len=self.hparams['MAX_LENGTH'], vocab_size=self.tokenizer.vocab_size)])
         except Exception as err:
             self.fail(f"Model creation failed: {err}")
         self.assertTrue(hasattr(base, "model"), "Model not created.")
@@ -163,7 +163,7 @@ class Metrics(unittest.TestCase):
 
     def test_006_perplexity_metric_performer(self):
         try:
-            base = PerformerIntegration(**self.config_for_models, metrics=[Perplexity(max_len=self.hparams['MAX_LENGTH'])], num_features=128)
+            base = PerformerIntegration(**self.config_for_models, metrics=[Perplexity(max_len=self.hparams['MAX_LENGTH'], vocab_size=self.tokenizer.vocab_size)], num_features=128)
         except Exception as err:
             self.fail(f"Model creation failed: {err}")
         self.assertTrue(hasattr(base, "model"), "Model not created.")
