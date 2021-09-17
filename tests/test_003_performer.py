@@ -170,6 +170,6 @@ Reply: {reply}""")
                                                                            batch_size=self.batch_size, vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
-                     epochs=1)
+                     epochs=1, callbacks=base.get_default_callbacks()[:-1])
         except Exception as err:
             self.fail(f"Save frequency parameter failed. {err}")
