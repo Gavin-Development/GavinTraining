@@ -5,7 +5,7 @@ import json
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from GavinCore.models import TransformerIntegration, tfds, PerformerIntegration
 from GavinCore.utils import tf
-from GavinCore.datasets import create_data_objects
+from GavinCore.datasets import DatasetAPICreator
 from GavinCore.metrics import Perplexity, Precision
 from DataParsers.load_data import load_tokenized_data
 from pathlib import Path
@@ -63,8 +63,10 @@ class Metrics(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers,
+                                                                           buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size,
+                                                                           vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)
@@ -83,8 +85,10 @@ class Metrics(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers,
+                                                                           buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size,
+                                                                           vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)
@@ -103,8 +107,10 @@ class Metrics(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers,
+                                                                           buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size,
+                                                                           vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)
@@ -123,8 +129,10 @@ class Metrics(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers,
+                                                                           buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size,
+                                                                           vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)
@@ -143,8 +151,10 @@ class Metrics(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers,
+                                                                           buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size,
+                                                                           vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)
@@ -163,8 +173,10 @@ class Metrics(unittest.TestCase):
                                                  s_token=base.start_token,
                                                  e_token=base.end_token, max_len=base.max_len)
 
-        dataset_train, dataset_val = create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                         batch_size=self.batch_size)
+        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers,
+                                                                           buffer_size=self.buffer_size,
+                                                                           batch_size=self.batch_size,
+                                                                           vocab_size=base.vocab_size)
         try:
             base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
                      epochs=1)
