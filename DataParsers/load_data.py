@@ -41,7 +41,7 @@ def load_tokenized_data(max_samples: int, data_path: typing.AnyStr, tokenizer_na
     {data_path}{tokenizer_name}.to these will be configurable eventually."""
     if not legacy and max_len is None:
         raise Exception("Max Length can't be none when Legacy is false.")
-    if not WINDOWS and legacy:
+    if not WINDOWS and not legacy:
         raise Exception("This package is only compiled for windows, linux compatability coming soon. Please use legacy for now.")
     if legacy:
         with ProcessPoolExecutor(2) as executor:
