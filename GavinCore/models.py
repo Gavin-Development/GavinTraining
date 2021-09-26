@@ -5,7 +5,7 @@ import json
 import tensorflow_datasets as tfds
 
 from .layers import PositionalEncoding, MultiHeadAttention, GPUEnabledEmbedding, MultiHeadPreformerAttention
-from .utils import tf, convert_to_probabilities
+from .utils import tf
 from .preprocessing.text import preprocess_sentence
 from .callbacks import PredictCallback
 from .losses import SparseCategoricalCrossentropy
