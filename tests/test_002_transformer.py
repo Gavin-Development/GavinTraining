@@ -21,6 +21,7 @@ else:
     print("Memory Growth Set to True.")
 
 
+# noinspection PyShadowingNames
 class TestTransformer(unittest.TestCase):
     def setUp(self) -> None:
         self.tokenizer_path = os.path.join(BASE_DIR, os.path.join('tests/test_files', 'Tokenizer-3'))
@@ -116,7 +117,7 @@ class TestTransformer(unittest.TestCase):
 
     def test_005_model_projector_metadata(self):
         try:
-            base = TransformerIntegration(**self.config_for_models)
+            TransformerIntegration(**self.config_for_models)
             self.assertTrue(os.path.exists('../models/TestTransformer/metadata.tsv'))
         except Exception as e:
             self.fail(f"Model creation failed: {e}")

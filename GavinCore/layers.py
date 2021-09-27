@@ -80,7 +80,7 @@ def softmax_kernel_transformation(data: tf.Tensor,
     return data_dash
 
 
-def attn_hat(query, key, value, phi_fun=None, normalize=True, random_feats=None):
+def attn_hat(query, key, value, phi_fun=None, random_feats=None):
     sequence_length = tf.shape(query)[2]
 
     if phi_fun is not None:
@@ -118,7 +118,7 @@ def positive_attention(query, key, value, random_feats, normalize=True):
     """Instead of using ScaledDotProduction, this uses the above Gaussian elements to estimate the answer that
     the full ScaledDotProduction would give. """
 
-    return attn_hat(query, key, value, normalize=normalize, random_feats=random_feats)
+    return attn_hat(query, key, value, random_feats=random_feats)
 
 
 def scaled_dot_product_attention(query, key, value, mask):

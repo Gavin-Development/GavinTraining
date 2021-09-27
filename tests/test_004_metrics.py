@@ -1,6 +1,5 @@
 import os
 import unittest
-import json
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 from GavinCore.models import TransformerIntegration, tfds, PerformerIntegration

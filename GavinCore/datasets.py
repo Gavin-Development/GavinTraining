@@ -1,6 +1,5 @@
-import os
-from .preprocessing.text import np
 from .models import tf
+from .preprocessing.text import np
 
 
 class DatasetAPICreator:

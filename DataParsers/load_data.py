@@ -10,10 +10,10 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import tqdm
 
-path = Path(__file__).resolve().parent.parent
+root_path = Path(__file__).resolve().parent.parent
 WINDOWS = False
 if "windows" in platform.system().lower():
-    sys.path.append(os.path.join(str(path), 'CustomPackages/windows'))
+    sys.path.append(os.path.join(str(root_path), 'CustomPackages/windows'))
     WINDOWS = True
 
 

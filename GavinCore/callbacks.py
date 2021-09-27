@@ -1,8 +1,10 @@
 import random
+from typing import List, AnyStr, Dict
+
 import numpy as np
+
 from .models import tf, tfds
 from .preprocessing.text import preprocess_sentence
-from typing import List, AnyStr, Dict, Union
 
 
 class PredictCallback(tf.keras.callbacks.Callback):
