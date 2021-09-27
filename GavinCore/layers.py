@@ -31,59 +31,6 @@ def orthogonal_gaussian(m, d):
     return matrix
 
 
-class FAVORPlusAttentionLayer(tf.keras.layers.Layer):
-    """Implement FAVOR+ Attention from: https://arxiv.org/pdf/2009.14794.pdf.
-
-    Using Orthogonal Positive Random Features. To ensure least error.
-
-    Attributes:
-        :arg num_features: int
-            Number of random features for the random_feature matrix.
-        :arg d_model: int
-            Feature Dimension from Embedding layers.
-    Methods:
-        __init__(self, num_features: int, d_model: int, **kwargs):
-            Initialises the layer with attributes required in the call.
-        call(self, inputs: Dict, *args, **kwargs)
-            Runs the layer, takes "inputs" dict, NOTE: must contain keys,
-            "Query, Key, Value", these should be tensors.
-"""
-    def __init__(self, num_features: int, d_model: int, **kwargs):
-        super(FAVORPlusAttentionLayer, self).__init__(**kwargs)
-        self.required_inputs = ['query', 'key', 'value']
-        self.num_features = num_features
-        self.d_model = d_model
-        self.random_features = orthogonal_gaussian(self.num_features, self.d_model)
-
-    def call(self, inputs: Dict, *args, **kwargs):
-        for required_input in self.required_inputs:
-            if required_input not in inputs.keys():
-                raise ValueError(f"Missing Required Input: {required_input}")
-        query, key, value = inputs['query'], inputs['key'], inputs['value']
-        seq_length = tf.shape(query)[0]
-
-        query = tf.transpose(query, perm=[0, 2, 1, 3])
-        key = tf.transpose(key, perm=[0, 2, 1, 3])
-        value = tf.transpose(value, perm=[0, 2, 1, 3])
-
-        q_prime = softmax_kernel_transformation(query, projection_matrix=self.random_features, is_query=True)
-        k_prime = softmax_kernel_transformation(key, projection_matrix=self.random_features, is_query=False)
-
-        # noinspection SpellCheckingInspection
-        av_attention = tf.einsum("lbhm,lbhd->bhmd", k_prime, value, name="AVAttention_PA")
-
-        # noinspection SpellCheckingInspection
-        av_attention = tf.einsum("lbhm,bhmd->lbhd", q_prime, av_attention, name="AVAttention_PB")
-        # noinspection SpellCheckingInspection
-        normalizer = tf.einsum("lbhm,l->bhm", k_prime, tf.ones(seq_length), name="NormalizerPA")
-        # noinspection SpellCheckingInspection
-        normalizer = tf.einsum("lbhm,bhm->lbh", q_prime, normalizer, name="NormalizerPB")
-        av_attention = tf.transpose(av_attention, [1, 0, 2, 3])
-        normalizer = tf.transpose(normalizer, [1, 0, 2])
-        normalizer = tf.expand_dims(normalizer, len(tf.shape(normalizer)))
-        return av_attention / normalizer
-
-
 @tf.function(experimental_follow_type_hints=True)
 def softmax_kernel_transformation(data: tf.Tensor,
                                   is_query: bool,
@@ -134,7 +81,7 @@ def softmax_kernel_transformation(data: tf.Tensor,
 
 
 def attn_hat(query, key, value, phi_fun=None, normalize=True, random_feats=None):
-    l = tf.shape(query)[2]
+    sequence_length = tf.shape(query)[2]
 
     if phi_fun is not None:
         q_prime = phi_fun(query)
@@ -158,7 +105,7 @@ def attn_hat(query, key, value, phi_fun=None, normalize=True, random_feats=None)
     # noinspection SpellCheckingInspection
     av_attention = tf.einsum("lbhm,bhmd->lbhd", q_prime, av_attention, name="AVAttention_PB")
     # noinspection SpellCheckingInspection
-    normalizer = tf.einsum("lbhm,l->bhm", k_prime, tf.ones(l), name="NormalizerPA")
+    normalizer = tf.einsum("lbhm,l->bhm", k_prime, tf.ones(sequence_length), name="NormalizerPA")
     # noinspection SpellCheckingInspection
     normalizer = tf.einsum("lbhm,bhm->lbh", q_prime, normalizer, name="NormalizerPB")
     av_attention = tf.transpose(av_attention, [1, 0, 2, 3])
