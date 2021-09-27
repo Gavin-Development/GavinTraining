@@ -114,7 +114,7 @@ def attn_hat(query, key, value, phi_fun=None, random_feats=None):
     return av_attention / normalizer
 
 
-def positive_attention(query, key, value, random_feats, normalize=True):
+def positive_attention(query, key, value, random_feats):
     """Instead of using ScaledDotProduction, this uses the above Gaussian elements to estimate the answer that
     the full ScaledDotProduction would give. """
 
