@@ -43,7 +43,7 @@ def softmax_kernel_transformation(data: tf.Tensor,
 
   Args:
     data: input data tensor of the shape [B, L, H, D], where: B - batch
-      dimension, L - attention dimensions, H - heads, D - features.
+      dimension, L - attention dimensions, H - heads, D - depth.
     is_query: indicates whether input data is a query oor key tensor.
     projection_matrix: random Gaussian matrix of shape [M, D], where M stands
       for the number of random features and each D x D sub-block has pairwise
