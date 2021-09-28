@@ -20,6 +20,9 @@ if __name__ == "__main__":
     else:
         print("Memory Growth Set to True.")
 
+    if not os.path.exists("bunchOfLogs"):
+        os.mkdir("./bunchOfLogs/")
+
     LEGACY = False if "windows" in platform.system().lower() else True
     DATASET_PATH = input("Please enter dataset path: ")
     MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`]: ")
@@ -35,9 +38,15 @@ if __name__ == "__main__":
     if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
         metadata = json.load(
             open(os.path.join(LOG_DIR, os.path.join(MODEL_NAME, os.path.join('config/', 'metadata.json')))))
-        MAX_SAMPLES = metadata['MAX_SAMPLES']
-        BATCH_SIZE = metadata['BATCH_SIZE']
-        BUFFER_SIZE = metadata['BUFFER_SIZE']
+        choice = input(f"Do you want to edit the metadata ({metadata})? y/n: ")
+        if choice == "y":
+            MAX_SAMPLES = int(input("MAX_SAMPLES: "))
+            BATCH_SIZE = int(input("BATCH_SIZE: "))
+            BUFFER_SIZE = int(input("BUFFER_SIZE: "))
+        else:
+            MAX_SAMPLES = metadata['MAX_SAMPLES']
+            BATCH_SIZE = metadata['BATCH_SIZE']
+            BUFFER_SIZE = metadata['BUFFER_SIZE']
     else:
         MAX_SAMPLES = int(input("MAX_SAMPLES: "))
         BATCH_SIZE = int(input("BATCH_SIZE: "))
