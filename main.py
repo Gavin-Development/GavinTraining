@@ -1,5 +1,6 @@
 import os
 import json
+import platform
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -19,6 +20,8 @@ if __name__ == "__main__":
     else:
         print("Memory Growth Set to True.")
 
+    LEGACY = False if "windows" in platform.system().lower() else True
+    DATASET_PATH = input("Please enter dataset path: ")
     MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`]: ")
     if MODEL_TYPE.lower() == "performer":
         MODEL_TYPE = PerformerIntegration
@@ -46,12 +49,13 @@ if __name__ == "__main__":
         model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
         model.metadata = metadata
         questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
-                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
+                                                 data_path=DATASET_PATH,
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
                                                  s_token=model.start_token,
-                                                 e_token=model.end_token, )
-        # questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
-        # answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
+                                                 e_token=model.end_token, max_len=model.max_len, legacy=LEGACY)
+        if LEGACY:
+            questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
+            answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
                                                                            batch_size=BATCH_SIZE,
                                                                            vocab_size=model.vocab_size)
@@ -79,7 +83,7 @@ if __name__ == "__main__":
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                                metadata=metadata,
                                metrics=['accuracy', Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
-                               save_freq=SAVE_FREQ)
+                               save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
         else:
             NUM_FEATURES = int(input("RANDOM_FEATURES: "))
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
@@ -89,12 +93,13 @@ if __name__ == "__main__":
                                metrics=['accuracy', Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
                                save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
         questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
-                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
+                                                 data_path=DATASET_PATH,
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
                                                  s_token=model.start_token,
-                                                 e_token=model.end_token, legacy=True)
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
+                                                 e_token=model.end_token, max_len=MAX_LENGTH, legacy=LEGACY)
+        if LEGACY:
+            questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
+            answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
                                                                            batch_size=BATCH_SIZE, vocab_size=model.vocab_size)
 
