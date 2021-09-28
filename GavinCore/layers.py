@@ -82,7 +82,9 @@ def softmax_kernel_transformation(data: tf.Tensor,
 
 def attn_hat(query, key, value, phi_fun=None, random_feats=None):
     sequence_length = tf.shape(query)[2]
-
+    # B, H, L, D to B, L, H, D
+    query = tf.transpose(query, [0, 2, 1, 3])
+    key = tf.transpose(key, [0, 2, 1, 3])
     if phi_fun is not None:
         q_prime = phi_fun(query)
         k_prime = phi_fun(key)
@@ -90,14 +92,12 @@ def attn_hat(query, key, value, phi_fun=None, random_feats=None):
         q_prime = softmax_kernel_transformation(query, projection_matrix=random_feats, is_query=True)
         k_prime = softmax_kernel_transformation(key, projection_matrix=random_feats, is_query=False)
 
-    # B, H, L, M: Query', Key'
-
+    # B H L D, L B H D
     value = tf.transpose(value, [2, 0, 1, 3])
 
-    # B L M H, L B H M
-    k_prime = tf.transpose(k_prime, [2, 0, 1, 3])
-
-    q_prime = tf.transpose(q_prime, [2, 0, 1, 3])
+    # B L H M, L B H M
+    k_prime = tf.transpose(k_prime, [1, 0, 2, 3])
+    q_prime = tf.transpose(q_prime, [1, 0, 2, 3])
 
     # noinspection SpellCheckingInspection
     av_attention = tf.einsum("lbhm,lbhd->bhmd", k_prime, value, name="AVAttention_PA")
