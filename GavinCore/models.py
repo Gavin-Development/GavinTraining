@@ -14,7 +14,7 @@ from tensorboard.plugins import projector
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 
-    def __init__(self, d_model: int, warmup_steps: int = 5000):
+    def __init__(self, d_model: int, warmup_steps: int = 4000):
         super(CustomSchedule, self).__init__()
 
         self.d_model = d_model
