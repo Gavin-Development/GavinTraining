@@ -41,7 +41,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 class TransformerAbstract(abc.ABC):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, batch_size: int,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0,
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, warmup_steps_learning_rate: int = 4000,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
                  metadata=None, metrics: typing.List = None):
         if metrics is None:
@@ -60,6 +60,7 @@ class TransformerAbstract(abc.ABC):
         self.default_dtype = tf.float32 if not mixed else tf.float16
         self.save_freq = save_freq
         self.batch_size = batch_size
+        self.warmup_steps = warmup_steps_learning_rate
         self.model = None
 
         self.name = name
@@ -138,7 +139,7 @@ class TransformerAbstract(abc.ABC):
         return self.start_token, self.end_token
 
     def get_optimizer(self) -> tf.keras.optimizers.Adam:
-        learning_rate = CustomSchedule(self.d_model)
+        learning_rate = CustomSchedule(self.d_model, warmup_steps=self.warmup_steps)
         return tf.keras.optimizers.Adam(learning_rate, beta_1=0.91, beta_2=0.98, epsilon=1e-9, clipnorm=5.0)
 
     def get_default_callbacks(self) -> typing.List:
@@ -468,7 +469,7 @@ class PerformerIntegration(TransformerIntegration):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
                  num_features: int, base_log_dir: typing.AnyStr, batch_size: int,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0,
+                 name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0, warmup_steps_learning_rate: int = 4000,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
                  metadata=None, metrics: typing.List = None):
         if num_features > d_model:
@@ -476,12 +477,10 @@ class PerformerIntegration(TransformerIntegration):
 
         self.num_features = num_features
         super(PerformerIntegration, self).__init__(num_layers=num_layers, units=units, d_model=d_model,
-                                                   num_heads=num_heads, dropout=dropout,
-                                                   max_len=max_len,
-                                                   base_log_dir=base_log_dir, tokenizer=tokenizer, name=name,
-                                                   mixed=mixed, epochs=epochs,
-                                                   save_freq=save_freq,
-                                                   metadata=metadata, metrics=metrics, batch_size=batch_size)
+                                                   num_heads=num_heads, dropout=dropout, batch_size=batch_size,
+                                                   max_len=max_len, base_log_dir=base_log_dir, tokenizer=tokenizer,
+                                                   name=name, mixed=mixed, epochs=epochs, save_freq=save_freq,
+                                                   metadata=metadata, metrics=metrics, warmup_steps_learning_rate=warmup_steps_learning_rate)
         self.config['NUM_FEATURES'] = self.num_features
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:
