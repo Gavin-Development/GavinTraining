@@ -123,25 +123,7 @@ class TestPreformer(unittest.TestCase):
             self.fail(f"Model fit failed: {e}")
         base.model.summary()
 
-    def test_005_model_callbacks(self):
-        base = PerformerIntegration.load_model('../models/', 'TestPreformer')
-
-        questions, answers = load_tokenized_data(max_samples=self.max_samples,
-                                                 data_path="D:\\Datasets\\reddit_data\\files\\",
-                                                 tokenizer_name="Tokenizer-3",
-                                                 s_token=base.start_token,
-                                                 e_token=base.end_token, max_len=base.max_len)
-
-        dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=self.buffer_size,
-                                                                           batch_size=self.batch_size, vocab_size=base.vocab_size)
-
-        try:
-            base.fit(training_dataset=dataset_train, validation_dataset=dataset_val,
-                     epochs=2, callbacks=base.get_default_callbacks())
-        except Exception as e:
-            self.fail(f"Model fit failed: {e}")
-
-    def test_006_model_predicting(self):
+    def test_005_model_predicting(self):
         base = PerformerIntegration.load_model('../models/', 'TestPreformer')
 
         try:
@@ -159,7 +141,7 @@ Reply: {reply}""")
         except Exception as e:
             self.fail(f"Model creation failed: {e}")
 
-    def test_008_model_save_freq(self):
+    def test_006_model_save_freq(self):
         base = PerformerIntegration(**self.config_for_models)
         questions, answers = load_tokenized_data(max_samples=self.max_samples,
                                                  data_path="D:\\Datasets\\reddit_data\\files\\",
