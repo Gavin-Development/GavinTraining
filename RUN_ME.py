@@ -96,7 +96,7 @@ if __name__ == "__main__":
                                metrics=['accuracy', Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
                                save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
         else:
-            NUM_FEATURES = int(input("RANDOM_FEATURES: "))
+            NUM_FEATURES = 512
             model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                                num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                                max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
