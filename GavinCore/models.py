@@ -41,7 +41,8 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
 class TransformerAbstract(abc.ABC):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, batch_size: int,
                  max_len: int, base_log_dir: typing.AnyStr, tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0, warmup_steps_learning_rate: int = 4000,
+                 name: typing.AnyStr = "transformer", mixed: bool = False, epochs: int = 0,
+                 warmup_steps_learning_rate: int = 4000,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
                  metadata=None, metrics: typing.List = None):
         if metrics is None:
@@ -151,13 +152,14 @@ class TransformerAbstract(abc.ABC):
                             max_length=self.max_len,
                             log_dir=self.log_dir, wrapper_model=self)]
 
-    @staticmethod
-    def loss_function(y_true, y_pred) -> tf.Tensor:
+    def loss_function(self, y_true, y_pred) -> tf.Tensor:
         y_true = tf.cast(y_true, tf.float32)
-        # y_pred = tf.cast(tf.argmax(y_pred, axis=2), tf.float32)
-        # loss = self.scce(y_true, y_pred)
-        loss = SparseCategoricalCrossentropy(y_true, y_pred)
-        # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=tf.add(y_pred, 5e-6), labels=y_true)
+        loss = self.scce(y_true, y_pred)
+        # loss = SparseCategoricalCrossentropy(y_true, y_pred)
+
+        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+        loss = tf.multiply(loss, mask)
+
         return tf.reduce_mean(loss)
 
     def evaluate(self, sentence: typing.AnyStr) -> tf.Tensor:
@@ -469,7 +471,8 @@ class PerformerIntegration(TransformerIntegration):
     def __init__(self, num_layers: int, units: int, d_model: int, num_heads: int, dropout: float, max_len: int,
                  num_features: int, base_log_dir: typing.AnyStr, batch_size: int,
                  tokenizer: tfds.deprecated.text.SubwordTextEncoder = None,
-                 name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0, warmup_steps_learning_rate: int = 4000,
+                 name: typing.AnyStr = "performer", mixed: bool = False, epochs: int = 0,
+                 warmup_steps_learning_rate: int = 4000,
                  save_freq: typing.Union[int, typing.AnyStr] = 'epoch',
                  metadata=None, metrics: typing.List = None):
         if num_features > d_model:
@@ -480,7 +483,8 @@ class PerformerIntegration(TransformerIntegration):
                                                    num_heads=num_heads, dropout=dropout, batch_size=batch_size,
                                                    max_len=max_len, base_log_dir=base_log_dir, tokenizer=tokenizer,
                                                    name=name, mixed=mixed, epochs=epochs, save_freq=save_freq,
-                                                   metadata=metadata, metrics=metrics, warmup_steps_learning_rate=warmup_steps_learning_rate)
+                                                   metadata=metadata, metrics=metrics,
+                                                   warmup_steps_learning_rate=warmup_steps_learning_rate)
         self.config['NUM_FEATURES'] = self.num_features
 
     def encoder_layer(self, name: str = "encoder_layer") -> tf.keras.Model:

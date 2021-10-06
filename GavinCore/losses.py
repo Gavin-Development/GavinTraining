@@ -14,4 +14,4 @@ def SparseCategoricalCrossentropy(y_true: tf.Tensor, y_pred: tf.Tensor, numeric_
                         tf.math.log(y_pred), name="mul_1")
             + tf.multiply((1 - y_true),
                           tf.math.log(1 - y_pred)),
-            axis=0) / batch_size)
+            axis=2) / batch_size)
