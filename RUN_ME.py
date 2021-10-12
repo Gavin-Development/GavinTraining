@@ -58,6 +58,7 @@ if __name__ == "__main__":
     tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
     if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
         model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
+        model.metrics = ['accuracy', Perplexity(max_len=model.max_len, vocab_size=model.vocab_size)]
         model.metadata = metadata
         questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                                  data_path=DATASET_PATH,
@@ -119,4 +120,3 @@ if __name__ == "__main__":
         callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=model.log_dir))  # Add tensorboard without profile
         model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
         model.model.summary()
-
