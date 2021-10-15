@@ -1,4 +1,4 @@
 [submodule "GavinBackend"]
 	path = GavinBackend
 	url = https://github.com/Gavin-Development/GavinBackend.git
-	branch = master
+	branch = main
