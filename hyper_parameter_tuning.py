@@ -29,12 +29,12 @@ if __name__ == "__main__":
     HP_MAX_SAMPLES = hp.HParam('max_samples', hp.Discrete([100_000]))
     HP_D_MODEL = hp.HParam('d_model', hp.Discrete([512, 1024]))
     HP_NUM_FEATURES = hp.HParam('num_features', hp.Discrete([128, 256, 512]))
-    HP_NUM_LAYERS = hp.HParam('num_layers', hp.Discrete([2, 4, 6, 8, 10, 12]))
+    HP_NUM_LAYERS = hp.HParam('num_layers', hp.Discrete([2, 4, 6]))
 
     # Non testing params defaults
-    HP_NUM_HEADS = hp.HParam('num_heads', hp.Discrete([8, 16, 32]))
+    HP_NUM_HEADS = hp.HParam('num_heads', hp.Discrete([8, 16]))
     HP_MAX_LENGTH = hp.HParam('max_length', hp.Discrete([30]))
-    HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.2, 0.3))
+    HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.3))
     HP_BUFFER_SIZE = hp.HParam('buffer_size', hp.Discrete([20_000]))
     HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([16, 32]))
     HP_WARMUP_STEPS = hp.HParam('warmup_steps', hp.Discrete([4000]))
@@ -53,10 +53,10 @@ if __name__ == "__main__":
             num_runs *= len(hparam.domain.values)
         elif type(hparam) == hp.RealInterval:
             num_runs *= (hparam.domain.max_value - hparam.domain.min_value)
-    product_args = (HP_NUM_UNITS, HP_MAX_SAMPLES, HP_D_MODEL, HP_NUM_FEATURES, HP_NUM_LAYERS, HP_NUM_HEADS,
-                    HP_MAX_LENGTH, (HP_DROPOUT.domain.min_value, HP_DROPOUT.domain.max_value), HP_BUFFER_SIZE,
-                    HP_BATCH_SIZE, HP_WARMUP_STEPS, HP_EPOCHS)
-    for num_layers, num_units, d_model, max_samples, dropout, num_heads, max_length, buffer_size, batch_size, warmup_steps, epochs, num_features in product(
+    product_args = (HP_NUM_UNITS.domain.values, HP_MAX_SAMPLES.domain.values, HP_D_MODEL.domain.values, HP_NUM_FEATURES.domain.values, HP_NUM_LAYERS.domain.values, HP_NUM_HEADS.domain.values,
+                    HP_MAX_LENGTH.domain.values, (HP_DROPOUT.domain.min_value, HP_DROPOUT.domain.max_value), HP_BUFFER_SIZE.domain.values,
+                    HP_BATCH_SIZE.domain.values, HP_WARMUP_STEPS.domain.values, HP_EPOCHS.domain.values)
+    for num_units, max_samples, d_model, num_features, num_layers, num_heads, max_length, dropout, buffer_size, batch_size, warmup_steps, epochs in product(
             *product_args):
         tf.keras.backend.clear_session()  # Reduces the amount of memory this will use.
 
@@ -71,6 +71,7 @@ NUM_FEATURES: {num_features if isPreformer else None}
 MAX_SAMPLES: {max_samples}
 NUM_HEADS: {num_heads}
 DROPOUT: {dropout}
+MAX_LENGTH: {max_length}
 BUFFER_SIZE: {buffer_size}
 BATCH_SIZE: {batch_size}
 WARMUP_STEPS: {warmup_steps}
