@@ -24,7 +24,7 @@ if __name__ == "__main__":
         os.mkdir("./bunchOfLogs/")
 
     PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
-    CPP_LEGACY = True
+    CPP_LEGACY = False
     DATASET_PATH = input("Please enter dataset path: ")
     MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`]: ")
     if MODEL_TYPE.lower() == "performer":
