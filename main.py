@@ -55,6 +55,7 @@ if __name__ == "__main__":
     TOKENIZER_PATH = input("TOKENIZER_PATH: ")
     EPOCHS = int(input("EPOCHS: "))
     tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
+    metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
     if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
         model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
         model.metrics = [tf.keras.metrics.SparseCategoricalAccuracy(), Perplexity(max_len=model.max_len, vocab_size=model.vocab_size)]
