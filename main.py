@@ -23,7 +23,8 @@ if __name__ == "__main__":
     if not os.path.exists("bunchOfLogs"):
         os.mkdir("./bunchOfLogs/")
 
-    LEGACY = False if "windows" in platform.system().lower() else True
+    PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
+    CPP_LEGACY = True
     DATASET_PATH = input("Please enter dataset path: ")
     MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`]: ")
     if MODEL_TYPE.lower() == "performer":
@@ -62,8 +63,9 @@ if __name__ == "__main__":
                                                  data_path=DATASET_PATH,
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
                                                  s_token=model.start_token,
-                                                 e_token=model.end_token, max_len=model.max_len, legacy=LEGACY)
-        if LEGACY:
+                                                 e_token=model.end_token, max_len=model.max_len, python_legacy=PYTHON_LEGACY,
+                                                 cpp_legacy=CPP_LEGACY)
+        if PYTHON_LEGACY:
             questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
             answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
@@ -106,8 +108,9 @@ if __name__ == "__main__":
                                                  data_path=DATASET_PATH,
                                                  tokenizer_name=os.path.basename(TOKENIZER_PATH),
                                                  s_token=model.start_token,
-                                                 e_token=model.end_token, max_len=MAX_LENGTH, legacy=LEGACY)
-        if LEGACY:
+                                                 e_token=model.end_token, max_len=MAX_LENGTH, python_legacy=PYTHON_LEGACY,
+                                                 cpp_legacy=CPP_LEGACY)
+        if PYTHON_LEGACY:
             questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
             answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
         dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
