@@ -65,8 +65,9 @@ tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PAT
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
 if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
-    model.metrics = [tf.keras.metrics.SparseCategoricalAccuracy(),
-                     Perplexity(max_len=model.max_len, vocab_size=model.vocab_size)]
+    with model.strategy.scope():
+        model.metrics = [tf.keras.metrics.SparseCategoricalAccuracy(),
+                         Perplexity(max_len=model.max_len, vocab_size=model.vocab_size)]
     model.metadata = metadata
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
@@ -101,18 +102,15 @@ else:
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
-                           metrics=[tf.keras.metrics.SparseCategoricalAccuracy(),
-                                    Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
     else:
         NUM_FEATURES = int(input("RANDOM_FEATURES: "))
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                           metadata=metadata, num_features=NUM_FEATURES,
-                           metrics=[tf.keras.metrics.SparseCategoricalAccuracy(),
-                                    Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size)],
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
+    with model.strategy.scope():
+        model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
                                              tokenizer_name=os.path.basename(TOKENIZER_PATH),
