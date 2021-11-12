@@ -29,7 +29,9 @@ for database in databases:
         limit = 3_000_000
         shutil.copy('D:/Datasets/reddit_data/databases/{}'.format(database), './temp/{}'.format(database))
         connection = sqlite3.connect('./temp/{}'.format(database))
-        sql = "CREATE TABLE IF NOT EXISTS tokenized_comment_data_new (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id TEXT, comment_id TEXT, parent_tokenized TEXT, comment_tokenized TEXT, subreddit TEXT, unix INT, score INT, tokenizer_name TEXT)"
+        sql = "CREATE TABLE IF NOT EXISTS tokenized_comment_data_new (id INTEGER PRIMARY KEY AUTOINCREMENT, " \
+              "parent_id TEXT, comment_id TEXT, parent_tokenized TEXT, comment_tokenized TEXT, subreddit TEXT, " \
+              "unix INT, score INT, tokenizer_name TEXT)"
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
