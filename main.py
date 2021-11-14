@@ -110,7 +110,8 @@ else:
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
-                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
+                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
+                           num_features=NUM_FEATURES)
     with model.strategy.scope():
         model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
