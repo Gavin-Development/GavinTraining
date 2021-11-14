@@ -103,6 +103,8 @@ else:
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
+        with model.strategy.scope():
+            model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     else:
         NUM_FEATURES = int(input("RANDOM_FEATURES: "))
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
