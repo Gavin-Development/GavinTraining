@@ -112,8 +112,8 @@ else:
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
                            num_features=NUM_FEATURES)
-    with model.strategy.scope():
-        model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
+        with model.strategy.scope():
+            model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
                                              tokenizer_name=os.path.basename(TOKENIZER_PATH),
