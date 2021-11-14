@@ -53,12 +53,17 @@ class StoppableThread(Thread):
         super(StoppableThread, self).__init__(target=target, args=args, *other_args, **kwargs)
         self._stop_event = Event()
         self.bucket = bucket
+        self.started = False
 
     def stop(self):
         self._stop_event.set()
 
     def stopped(self):
         return self._stop_event.is_set()
+
+    def start(self) -> None:
+        self.started = True
+        super(StoppableThread, self).start()
 
     def run(self):
         try:
