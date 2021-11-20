@@ -221,3 +221,4 @@ logs-backup
 *-old.py
 *-old/
 school_upload.py
+convert.py
