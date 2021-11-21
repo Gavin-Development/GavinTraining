@@ -28,6 +28,7 @@ dest_dir = None
 tokenizer_path = None
 tokenize = None
 tokenizer = None
+cache = {'subreddits': [], 'tokenizers': []}
 
 if len(sys.argv) >= 6:
     timeFrame = sys.argv[1]
@@ -160,47 +161,57 @@ def check_score(parent_id):
 
 
 def check_subreddit(subreddit):
-    sql = "SELECT id, name FROM subreddits;"
-    try:
-        cursor.execute(sql)
-    except Exception as e:
-        logger.error(f"{timeFrame} Error running sql: {e}")
-        logger.error(f"{timeFrame} SQL: {sql}")
-        logger.error(f"{timeFrame} Data: {subreddit}")
-        if DEBUG:
-            raise e
-        else:
-            quit()
-    result = cursor.fetchall()
-    for row in result:
-        if row[1] == subreddit:
-            return row[0]
+    if len(cache['subreddits']) == 0:
+        sql = "SELECT id, name FROM subreddits;"
+        try:
+            cursor.execute(sql)
+        except Exception as e:
+            logger.error(f"{timeFrame} Error running sql: {e}")
+            logger.error(f"{timeFrame} SQL: {sql}")
+            logger.error(f"{timeFrame} Data: {subreddit}")
+            if DEBUG:
+                raise e
+            else:
+                quit()
+        result = cursor.fetchall()
+        cache['subreddits'] = result
+        check_subreddit(subreddit)
     else:
-        sql = "INSERT INTO subreddits (name) VALUES (?);"
-        row_id = run_sql_insert_or_update(sql, (subreddit,))
-        return row_id
+        for row in cache['subreddits']:
+            if row[1] == subreddit:
+                return row[0]
+        else:
+            sql = "INSERT INTO subreddits (name) VALUES (?);"
+            row_id = run_sql_insert_or_update(sql, (subreddit,))
+            cache['subreddits'].append((row_id, subreddit))
+            return row_id
 
 
 def check_tokenizer(tokenizer_name):
-    sql = "SELECT id, tokenizer_id FROM tokenizers;"
-    try:
-        cursor.execute(sql)
-    except Exception as e:
-        logger.error(f"{timeFrame} Error running sql: {e}")
-        logger.error(f"{timeFrame} SQL: {sql}")
-        logger.error(f"{timeFrame} Data: {tokenizer_name}")
-        if DEBUG:
-            raise e
-        else:
-            quit()
-    result = cursor.fetchall()
-    for row in result:
-        if row[1] == tokenizer_name:
-            return row[0]
+    if len(cache['tokenizers']) == 0:
+        sql = "SELECT id, tokenizer_id FROM tokenizers;"
+        try:
+            cursor.execute(sql)
+        except Exception as e:
+            logger.error(f"{timeFrame} Error running sql: {e}")
+            logger.error(f"{timeFrame} SQL: {sql}")
+            logger.error(f"{timeFrame} Data: {tokenizer_name}")
+            if DEBUG:
+                raise e
+            else:
+                quit()
+        result = cursor.fetchall()
+        cache['tokenizers'] = result
+        check_tokenizer(tokenizer_name)
     else:
-        sql = "INSERT INTO tokenizers (tokenizer_id) VALUES (?);"
-        row_id = run_sql_insert_or_update(sql, (tokenizer_name,))
-        return row_id
+        for row in cache['tokenizers']:
+            if row[1] == tokenizer_name:
+                return row[0]
+        else:
+            sql = "INSERT INTO tokenizers (tokenizer_id) VALUES (?);"
+            row_id = run_sql_insert_or_update(sql, (tokenizer_name,))
+            cache['tokenizers'].append((row_id, tokenizer_name))
+            return row_id
 
 
 def check_parent(parent_id):
