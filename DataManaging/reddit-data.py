@@ -42,15 +42,15 @@ if len(sys.argv) >= 6:
             tokenizer_path = input("Enter Tokenizer path: ")
         tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(tokenizer_path)
     if compress_algo in SUPPORTED_ALGO:
-        logger.debug(f"Time frame provided is: {timeFrame} ")
-        logger.debug(f"File directory provided is: {file_dir} ")
-        logger.debug(f"Compression algorithm provided is: {compress_algo} ")
-        logger.debug(f"Destination file provided is: {dest_dir} ")
+        logger.debug(f"{timeFrame} Time frame provided is: {timeFrame} ")
+        logger.debug(f"{timeFrame} File directory provided is: {file_dir} ")
+        logger.debug(f"{timeFrame} Compression algorithm provided is: {compress_algo} ")
+        logger.debug(f"{timeFrame} Destination file provided is: {dest_dir} ")
     else:
-        logger.error(f"Compression algorithm provided is not supported: {compress_algo}. Current supported: {SUPPORTED_ALGO}")
+        logger.error(f"{timeFrame} Compression algorithm provided is not supported: {compress_algo}. Current supported: {SUPPORTED_ALGO}")
         sys.exit(1)
 else:
-    logger.error("Incorrect Arguments (time_frame, file_dir, compress-algo [bz2, zst], dest_dir, tokenizer [true, false]). Quitting.")
+    logger.error(f"{timeFrame} Incorrect Arguments (time_frame, file_dir, compress-algo [bz2, zst], dest_dir, tokenizer [true, false]). Quitting.")
     sys.exit(1)
 
 last_utc = 0
@@ -65,8 +65,8 @@ def cleanup_null():
     try:
         cursor.execute(sql)
     except Exception as e:
-        logger.error(f"Error running sql: {e}")
-        logger.error(f"SQL: {sql}")
+        logger.error(f"{timeFrame} Error running sql: {e}")
+        logger.error(f"{timeFrame} SQL: {sql}")
         if DEBUG:
             raise e
         else:
@@ -96,9 +96,9 @@ def run_sql_insert_or_update(sql, data):
     try:
         cursor.execute(sql, data)
     except Exception as e:
-        logger.error(f"Error running sql: {e}")
-        logger.error(f"SQL: {sql}")
-        logger.error(f"Data: {data}")
+        logger.error(f"{timeFrame} Error running sql: {e}")
+        logger.error(f"{timeFrame} SQL: {sql}")
+        logger.error(f"{timeFrame} Data: {data}")
         if DEBUG:
             raise e
         else:
@@ -145,9 +145,9 @@ def check_score(parent_id):
     try:
         cursor.execute(sql, (parent_id,))
     except Exception as e:
-        logger.error(f"Error running sql: {e}")
-        logger.error(f"SQL: {sql}")
-        logger.error(f"Data: {parent_id}")
+        logger.error(f"{timeFrame} Error running sql: {e}")
+        logger.error(f"{timeFrame} SQL: {sql}")
+        logger.error(f"{timeFrame} Data: {parent_id}")
         if DEBUG:
             raise e
         else:
@@ -164,9 +164,9 @@ def check_subreddit(subreddit):
     try:
         cursor.execute(sql)
     except Exception as e:
-        logger.error(f"Error running sql: {e}")
-        logger.error(f"SQL: {sql}")
-        logger.error(f"Data: {subreddit}")
+        logger.error(f"{timeFrame} Error running sql: {e}")
+        logger.error(f"{timeFrame} SQL: {sql}")
+        logger.error(f"{timeFrame} Data: {subreddit}")
         if DEBUG:
             raise e
         else:
@@ -186,9 +186,9 @@ def check_tokenizer(tokenizer_name):
     try:
         cursor.execute(sql)
     except Exception as e:
-        logger.error(f"Error running sql: {e}")
-        logger.error(f"SQL: {sql}")
-        logger.error(f"Data: {tokenizer_name}")
+        logger.error(f"{timeFrame} Error running sql: {e}")
+        logger.error(f"{timeFrame} SQL: {sql}")
+        logger.error(f"{timeFrame} Data: {tokenizer_name}")
         if DEBUG:
             raise e
         else:
@@ -208,9 +208,9 @@ def check_parent(parent_id):
     try:
         cursor.execute(sql, (parent_id,))
     except Exception as e:
-        logger.error(f"Error running sql: {e}")
-        logger.error(f"SQL: {sql}")
-        logger.error(f"Data: {parent_id}")
+        logger.error(f"{timeFrame} Error running sql: {e}")
+        logger.error(f"{timeFrame} SQL: {sql}")
+        logger.error(f"{timeFrame} Data: {parent_id}")
         if DEBUG:
             raise e
         else:
@@ -278,7 +278,7 @@ def main():
         dctx = zstandard.ZstdDecompressor(max_window_size=2147483648)
         stream_reader = dctx.stream_reader(f, read_size=int(1.953e+6))
         text_stream = io.TextIOWrapper(stream_reader, encoding="utf-8")
-    logger.info(f"Reading {file_path}")
+    logger.info(f"{timeFrame} Reading {file_path}")
     for row in text_stream:
         row_counter += 1
         row = json.loads(row)
@@ -305,29 +305,29 @@ def main():
                 if result == "parent":
                     paired_rows += 1
         if row_counter % 100_000 == 0:
-            logger.info(f"Processed {row_counter} rows & {paired_rows} paired rows")
+            logger.info(f"{timeFrame} Processed {row_counter} rows & {paired_rows} paired rows")
         else:
             if DEBUG:
                 if row_counter % 1000 == 0:
-                    logger.info(f"Processed {row_counter} rows & {paired_rows} paired rows")
+                    logger.info(f"{timeFrame} Processed {row_counter} rows & {paired_rows} paired rows")
 
         if row_counter > 0:
             if row_counter % CLEANUP == 0:
-                logger.info(f"Cleaning up.")
+                logger.info(f"{timeFrame} Cleaning up.")
                 cleanup_null()
-    logger.info("Finishing...")
-    logger.info("Vacuum")
-    cursor.execute("VACUUM")
+    logger.info(f"{timeFrame} Finishing...")
+    logger.info(f"{timeFrame} Vacuum")
+    cursor.execute(f"{timeFrame} VACUUM")
     connection.commit()
-    logger.info("Closing")
+    logger.info(f"{timeFrame} Closing")
     cursor.close()
     connection.close()
-    logger.info("Total:")
+    logger.info(f"{timeFrame} Total:")
     logger.info(f"--Processed {row_counter} rows")
     logger.info(f"--Paired {paired_rows} rows")
-    logger.info("Moving")
+    logger.info(f"{timeFrame} Moving")
     shutil.move(f'./cache/{timeFrame}.db', os.path.join(dest_dir, f'{timeFrame}.db'))
-    logger.info(f"Finished.")
+    logger.info(f"{timeFrame} Finished.")
 
 
 if __name__ == "__main__":
