@@ -1,5 +1,5 @@
 pydot==1.4.2
-nltk==3.5
+nltk==3.6.5
 zstandard>=0.15.2
 pandas==1.2.3
 psutil==5.8.0
