@@ -1,23 +1,32 @@
 import base64
 import bz2
+import enum
 import io
 import json
 import logging
 import os
 import pickle
-import queue
 import shutil
 import sqlite3
 import sys
-import typing
 import zstandard
 
-import tensorflow_datasets as tfds
+
+class InsertionType(enum.Enum):
+    """
+    Enum for the different types of data insertion.
+    """
+    INSERT_NO_PARENT = 0
+    INSERT_PARENT = 1
+    UPDATE_CHILD = 2
+
 
 DEBUG = True
 SUPPORTED_ALGO = ["zst", "bz2"]
-CLEANUP = 1_000_000
-logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO, format='%(process)d-%(levelname)s %(asctime)s - %(message)s',
+DATABASE_COMMIT_RATE = 10_000
+
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO,
+                    format='%(process)d-%(levelname)s %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S')
 
 logger = logging.getLogger(__name__)
@@ -28,7 +37,14 @@ dest_dir = None
 tokenizer_path = None
 tokenize = None
 tokenizer = None
-cache = {'subreddits': [], 'tokenizers': []}
+
+# Cache['comments'] = {'comment_id' : 'id'} where id is the id of the comment in the database.
+
+cache = {'subreddits': [], 'tokenizers': [], 'comments': {}}
+sql_none_parents = []
+sql_parents = []
+sql_update = []
+
 
 if len(sys.argv) >= 6:
     timeFrame = sys.argv[1]
@@ -37,21 +53,29 @@ if len(sys.argv) >= 6:
     dest_dir = sys.argv[4]
     tokenize = sys.argv[5].lower()
     if tokenize == "true":
+        tokenize = True
+        import tensorflow_datasets as tfds
+
         if len(sys.argv) >= 7:
             tokenizer_path = sys.argv[6]
         else:
             tokenizer_path = input("Enter Tokenizer path: ")
         tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(tokenizer_path)
+    else:
+        tokenize = False
+
     if compress_algo in SUPPORTED_ALGO:
         logger.debug(f"{timeFrame} Time frame provided is: {timeFrame} ")
         logger.debug(f"{timeFrame} File directory provided is: {file_dir} ")
         logger.debug(f"{timeFrame} Compression algorithm provided is: {compress_algo} ")
         logger.debug(f"{timeFrame} Destination file provided is: {dest_dir} ")
     else:
-        logger.error(f"{timeFrame} Compression algorithm provided is not supported: {compress_algo}. Current supported: {SUPPORTED_ALGO}")
+        logger.error(
+            f"{timeFrame} Compression algorithm provided is not supported: {compress_algo}. Current supported: {SUPPORTED_ALGO}")
         sys.exit(1)
 else:
-    logger.error(f"{timeFrame} Incorrect Arguments (time_frame, file_dir, compress-algo [bz2, zst], dest_dir, tokenizer [true, false]). Quitting.")
+    logger.error(
+        f"{timeFrame} Incorrect Arguments (time_frame, file_dir, compress-algo [bz2, zst], dest_dir, tokenizer [true, false]). Quitting.")
     sys.exit(1)
 
 last_utc = 0
@@ -59,20 +83,6 @@ if not os.path.exists('./cache/'):
     os.mkdir('./cache/')
 connection = sqlite3.connect(f'./cache/{timeFrame}.db')
 cursor = connection.cursor()
-
-
-def cleanup_null():
-    sql = "DELETE FROM comment WHERE parent_id IS NULL;"
-    try:
-        cursor.execute(sql)
-    except Exception as e:
-        logger.error(f"{timeFrame} Error running sql: {e}")
-        logger.error(f"{timeFrame} SQL: {sql}")
-        if DEBUG:
-            raise e
-        else:
-            quit()
-    connection.commit()
 
 
 def format_data(data: str):
@@ -93,19 +103,37 @@ def acceptable(data: str):
         return True
 
 
-def run_sql_insert_or_update(sql, data):
-    try:
-        cursor.execute(sql, data)
-    except Exception as e:
-        logger.error(f"{timeFrame} Error running sql: {e}")
-        logger.error(f"{timeFrame} SQL: {sql}")
-        logger.error(f"{timeFrame} Data: {data}")
-        if DEBUG:
-            raise e
-        else:
-            quit()
-    connection.commit()
-    return cursor.lastrowid
+def run_sql_insert_or_update(data, insertion_type: InsertionType = InsertionType.INSERT_NO_PARENT):
+    if insertion_type == InsertionType.INSERT_NO_PARENT:
+        sql_none_parents.append(data)
+    elif insertion_type == InsertionType.INSERT_PARENT:
+        sql_parents.append(data)
+    elif insertion_type == InsertionType.UPDATE_CHILD:
+        sql_update.append(data)
+    if len(sql_none_parents) % DATABASE_COMMIT_RATE == 0 and len(sql_none_parents) > 0:
+        logger.debug(f"{timeFrame} Committing {len(sql_none_parents)} to database")
+        for none_data in sql_none_parents:
+            cursor.execute("INSERT INTO comment (content, comment_id, subreddit_id, unix, score) VALUES (?,?,?,?,?);", none_data)
+            rowid = cursor.lastrowid
+            cache['comments'][none_data[1]] = rowid
+        connection.commit()
+        for with_data in sql_parents:
+            with_data = list(with_data)
+            parent_id = cache['comments'][with_data[2]]
+            with_data[2] = parent_id
+            cursor.execute("INSERT INTO comment (content, comment_id, parent_id, subreddit_id, unix, score) VALUES (?,?,?,?,?,?);", with_data)
+            rowid = cursor.lastrowid
+            cache['comments'][with_data[1]] = rowid
+        connection.commit()
+        for update_data in sql_update:
+            update_data = list(update_data)
+            comment_id = cache['comments'][update_data[4]]
+            update_data[4] = comment_id
+            cursor.execute("UPDATE comment SET content = ?, subreddit_id = ?, unix = ?, score = ? WHERE comment_id = ?;", update_data)
+        sql_none_parents.clear()
+        sql_parents.clear()
+        sql_update.clear()
+        connection.commit()
 
 
 def create_tables():
@@ -160,8 +188,17 @@ def check_score(parent_id):
         return None
 
 
-def check_subreddit(subreddit):
-    if len(cache['subreddits']) == 0:
+def check_subreddit(subreddit: str, override: bool = False) -> int:
+    """
+    Check the subreddits in current database to see if it exists.
+    If it does, return the id.
+    :param subreddit: str
+        Name of the subreddit
+    :param override: bool
+        In the case of subreddits being empty after the first check, the override is set. """
+    if subreddit is None:
+        raise ValueError("Subreddit is None")
+    if len(cache['subreddits']) == 0 and not override:
         sql = "SELECT id, name FROM subreddits;"
         try:
             cursor.execute(sql)
@@ -175,6 +212,8 @@ def check_subreddit(subreddit):
                 quit()
         result = cursor.fetchall()
         cache['subreddits'] = result
+        if not result:
+            check_subreddit(subreddit, True)
         check_subreddit(subreddit)
     else:
         for row in cache['subreddits']:
@@ -182,13 +221,24 @@ def check_subreddit(subreddit):
                 return row[0]
         else:
             sql = "INSERT INTO subreddits (name) VALUES (?);"
-            row_id = run_sql_insert_or_update(sql, (subreddit,))
+            cursor.execute(sql, (subreddit,))
+            connection.commit()
+            row_id = cursor.lastrowid
             cache['subreddits'].append((row_id, subreddit))
             return row_id
 
 
-def check_tokenizer(tokenizer_name):
-    if len(cache['tokenizers']) == 0:
+def check_tokenizer(tokenizer_name: str, override: bool = False):
+    """
+    Check the tokenizers in current database to see if it exists.
+    If it does, return the id.
+    :param tokenizer_name: str
+        The tokenizer version name
+    :param override:
+        In the case of tokenizers being empty after the first check, the override is set.
+    :return:
+    """
+    if len(cache['tokenizers']) == 0 and not override:
         sql = "SELECT id, tokenizer_id FROM tokenizers;"
         try:
             cursor.execute(sql)
@@ -202,6 +252,8 @@ def check_tokenizer(tokenizer_name):
                 quit()
         result = cursor.fetchall()
         cache['tokenizers'] = result
+        if not result:
+            check_tokenizer(tokenizer_name, True)
         check_tokenizer(tokenizer_name)
     else:
         for row in cache['tokenizers']:
@@ -215,63 +267,34 @@ def check_tokenizer(tokenizer_name):
 
 
 def check_parent(parent_id):
-    sql = "SELECT id FROM comment WHERE comment_id = ?;"
-    try:
-        cursor.execute(sql, (parent_id,))
-    except Exception as e:
-        logger.error(f"{timeFrame} Error running sql: {e}")
-        logger.error(f"{timeFrame} SQL: {sql}")
-        logger.error(f"{timeFrame} Data: {parent_id}")
-        if DEBUG:
-            raise e
-        else:
-            quit()
-    result = cursor.fetchone()
-    if result is None:
-        return None
+    comment_ids = [data[1] for data in sql_none_parents]
+    if parent_id in cache['comments'].keys():
+        return cache['comments'][parent_id]
+    elif parent_id in comment_ids:
+        for c_id in comment_ids:
+            if c_id == parent_id:
+                return True
     else:
-        return result[0]
+        return False
 
 
 def sql_replace_comment(comment_id: str, comment: str, subreddit: str, time: int, score: int):
     subreddit = check_subreddit(subreddit)
-    sql = "UPDATE comment SET content = ?, subreddit_id = ?, unix = ?, score = ? WHERE comment_id = ?;"
-    run_sql_insert_or_update(sql, (comment, subreddit, time, score, comment_id))
+    run_sql_insert_or_update((comment, subreddit, time, score, comment_id), insertion_type=InsertionType.REPLACE)
 
 
-def sql_insert_no_parent(comment_id: str, comment: str, subreddit: str, time: int, score: int):
-    subreddit = check_subreddit(subreddit)
-    sql = "INSERT INTO comment (content, comment_id, subreddit_id, unix, score) VALUES (?,?,?,?,?);"
-    row_id = run_sql_insert_or_update(sql, (comment, comment_id, subreddit, time, score))
-    return row_id
-
-
-def sql_insert_tokenize(comment: str, content_id: int, tokenizer_name: str):
-    tokenizer_name = check_tokenizer(tokenizer_name)
-    sql = "INSERT INTO tokenized_comment (tokenized_content, content_id, tokenizer) VALUES (?,?,?);"
-    run_sql_insert_or_update(sql, (comment, content_id, tokenizer_name))
+def sql_insert_no_parent(comment_id: str, comment: str, subreddit: int, time: int, score: int):
+    run_sql_insert_or_update((comment, comment_id, subreddit, time, score), insertion_type=InsertionType.INSERT_NO_PARENT)
 
 
 def sql_insert_row(comment_id, parent_id, comment: str, subreddit: str, time: int, score: int):
-    tokenizer_name = os.path.splitext(os.path.basename(tokenizer_path))[0]
     subreddit = check_subreddit(subreddit)
-    parent_id = check_parent(parent_id)
-    if parent_id is not None:
-        sql = "INSERT INTO comment (content, comment_id, parent_id, subreddit_id, unix, score) VALUES (?,?,?,?,?,?)"
-        row_id = run_sql_insert_or_update(sql, (comment, comment_id, parent_id, subreddit, time, score))
-        if tokenize:
-            content = tokenizer.encode(comment)
-            content = pickle.dumps(content)
-            content = base64.b64encode(content)
-            sql_insert_tokenize(str(content), row_id, tokenizer_name)
+    has_parent = check_parent(parent_id)
+    if has_parent:
+        run_sql_insert_or_update((comment, comment_id, parent_id, subreddit, time, score), insertion_type=InsertionType.INSERT_PARENT)
         return "parent"
     else:
-        row_id = sql_insert_no_parent(comment_id, comment, subreddit, time, score)
-        if tokenize:
-            content = tokenizer.encode(comment)
-            content = pickle.dumps(content)
-            content = base64.b64encode(content)
-            sql_insert_tokenize(str(content), row_id, tokenizer_name)
+        sql_insert_no_parent(comment_id, comment, subreddit, time, score)
         return "no_parent"
 
 
@@ -322,10 +345,6 @@ def main():
                 if row_counter % 1000 == 0:
                     logger.info(f"{timeFrame} Processed {row_counter} rows & {paired_rows} paired rows")
 
-        if row_counter > 0:
-            if row_counter % CLEANUP == 0:
-                logger.info(f"{timeFrame} Cleaning up.")
-                cleanup_null()
     logger.info(f"{timeFrame} Finishing...")
     logger.info(f"{timeFrame} Vacuum")
     cursor.execute(f"{timeFrame} VACUUM")
