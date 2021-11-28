@@ -26,6 +26,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                 os.mkdir('./cache/')
             shutil.copy(os.path.join(database_path, time_frame), './cache/')
             limit = 100_000
+            offset = 0
             connection = sqlite3.connect('./cache/' + time_frame)
             c = connection.cursor()
             cur_length = limit
@@ -36,15 +37,21 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                 logger.error(f"Tokenizer {tokenizer_name} not found in database")
                 exit(1)
             tokenizer_id = result[0]
+            c.execute("SELECT MAX(id) FROM main.tokenized_comment;")
+            result = c.fetchone()
+            if result is None:
+                logger.error(f"No tokenized comments found in database")
+                exit(1)
+            max_id = result[0]
 
             filename_input = os.path.join(file_output_path, tokenizer_name + " " + file_name + ".from")
             filename_output = os.path.join(file_output_path, tokenizer_name + " " + file_name + ".to")
 
             while cur_length == limit:
-                logger.info(f"{time_frame} Outputted {count * (limit//2)} comments so far.")
+                logger.info(f"{time_frame} Outputted {4*(count * limit)}/{max_id} comments so far.")
                 try:
                     df = pd.read_sql(
-                        f"SELECT c.id, comment.id FROM comment INNER JOIN comment as c ON comment.parent_id = c.id LIMIT {limit};",
+                        f"SELECT c.id, comment.id FROM comment INNER JOIN comment as c ON comment.parent_id = c.id LIMIT {limit} OFFSET {limit * offset};",
                         connection)
                 except Exception as e:
                     logger.error(f"{time_frame} Pandas read sql error: {e}")
@@ -86,6 +93,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                         sys.exit(-1)
 
                     count += 1
+                    offset += 1
                     del inputs, outputs
 
                     with open(filename_input, 'a') as f:
