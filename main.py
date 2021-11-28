@@ -71,7 +71,7 @@ if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model.metadata = metadata
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
-                                             tokenizer_name=os.path.basename(TOKENIZER_PATH),
+                                             filename=os.path.basename(TOKENIZER_PATH),
                                              s_token=model.start_token,
                                              e_token=model.end_token, max_len=model.max_len,
                                              python_legacy=PYTHON_LEGACY,
@@ -116,7 +116,7 @@ else:
             model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
-                                             tokenizer_name=os.path.basename(TOKENIZER_PATH),
+                                             filename=os.path.basename(TOKENIZER_PATH),
                                              s_token=model.start_token,
                                              e_token=model.end_token, max_len=MAX_LENGTH,
                                              python_legacy=PYTHON_LEGACY,
