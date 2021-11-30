@@ -48,6 +48,7 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
             last_unix = 0
             cur_length = limit
             count = 0
+            offset = 0
             c = connection.cursor()
             c.execute("INSERT INTO tokenizers (tokenizer_id) VALUES (?)", (tokenizer_name,))
             connection.commit()
@@ -56,31 +57,33 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
             max_id = c.fetchone()[0]
 
             while cur_length == limit:
-                logger.info(f"{time_frame} Tokenized & inserted {count * limit}/{max_id} comments processed.")
+                logger.info(f"{time_frame} Tokenized & inserted {count * limit}/{max_id} comments.")
                 try:
                     df = pd.read_sql(
-                        "SELECT * FROM main.comment WHERE unix > {} AND score > 0 ORDER BY unix ASC LIMIT {}".format(
-                            last_unix, limit), connection)
+                        "SELECT * FROM main.comment AS c WHERE c.id NOT IN (SELECT content_id FROM tokenized_comment WHERE tokenizer = {}) AND c.score > 0 AND unix > {} ORDER BY unix ASC LIMIT {} OFFSET {};".format(
+                            tokenizer_row_id, last_unix, limit, (limit * offset)), connection)
                 except Exception as e:
                     logger.error(f"{time_frame} Pandas read_sql error: {e}")
                 else:
-                    last_unix = df.tail(1)['unix'].values[0]
                     cur_length = len(df)
-                    # Should look like [(tokenized_text, comment_id, tokenizer_id)]
-                    tokenized_comments = []
-                    logger.info(f"{time_frame} Starting tokenization of {cur_length}.")
-                    for table_id, comment in tqdm.tqdm(zip(df['id'].values, df['content'].values),
-                                                       desc=f"Tokenizing {time_frame}",
-                                                       total=cur_length, unit='comments'):
-                        tokenized_comments.append(
-                            (str(base64.b64encode(pickle.dumps(tokenizer.encode(preprocess_sentence(comment))))),
-                             int(table_id), int(tokenizer_row_id)))
+                    if cur_length > 0:
+                        # Should look like [(tokenized_text, comment_id, tokenizer_id)]
+                        last_unix = df.tail(1)['unix'].values[0]
+                        tokenized_comments = []
+                        logger.info(f"{time_frame} Starting tokenization of {cur_length}.")
+                        for table_id, comment in tqdm.tqdm(zip(df['id'].values, df['content'].values),
+                                                           desc=f"Tokenizing {time_frame}",
+                                                           total=cur_length, unit='comments'):
+                            tokenized_comments.append(
+                                (str(base64.b64encode(pickle.dumps(tokenizer.encode(preprocess_sentence(comment))))),
+                                 int(table_id), int(tokenizer_row_id)))
 
-                    c.executemany(
-                        "INSERT INTO main.tokenized_comment (tokenized_content, content_id, tokenizer) VALUES (?,?,?)",
-                        tokenized_comments)
-                    count += 1
-                    connection.commit()
+                        c.executemany(
+                            "INSERT INTO main.tokenized_comment (tokenized_content, content_id, tokenizer) VALUES (?,?,?)",
+                            tokenized_comments)
+                        count += 1
+                        offset += 1
+                        connection.commit()
             c.close()
             connection.close()
             shutil.copy('./cache/' + database_name, database_path)
