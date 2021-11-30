@@ -261,7 +261,8 @@ def check_tokenizer(tokenizer_name: str, override: bool = False):
                 return row[0]
         else:
             sql = "INSERT INTO tokenizers (tokenizer_id) VALUES (?);"
-            row_id = run_sql_insert_or_update(sql, (tokenizer_name,))
+            cursor.execute(sql, (tokenizer_name,))
+            row_id = cursor.lastrowid
             cache['tokenizers'].append((row_id, tokenizer_name))
             return row_id
 
