@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def main(database_path: str, time_frames: typing.List[str], file_output_path: str, tokenizer_name: str, file_name: str):
+    no_lines = 0
     for time_frame in time_frames:
         logging.info(f"{time_frame} Outputting {time_frame}")
         if os.path.exists(database_path) and os.path.exists(
@@ -25,7 +26,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
             if not os.path.exists('./cache/'):
                 os.mkdir('./cache/')
             shutil.copy(os.path.join(database_path, time_frame), './cache/')
-            limit = 100_000
+            limit = 1_500_000
             offset = 0
             connection = sqlite3.connect('./cache/' + time_frame)
             c = connection.cursor()
@@ -34,15 +35,15 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
             c.execute("SELECT id FROM tokenizers WHERE tokenizer_id == ?", (tokenizer_name,))
             result = c.fetchone()
             if result is None:
-                logger.error(f"Tokenizer {tokenizer_name} not found in database")
-                exit(1)
+                logger.error(f"Tokenizer {tokenizer_name} not found in database. Skipping to next.")
+                continue
             tokenizer_id = result[0]
 
             filename_input = os.path.join(file_output_path, tokenizer_name + " " + file_name + ".from")
             filename_output = os.path.join(file_output_path, tokenizer_name + " " + file_name + ".to")
 
             while cur_length == limit:
-                logger.info(f"{time_frame} Outputted {4*(count * limit)} comments so far.")
+                logger.info(f"{time_frame} Wrote {no_lines} lines so far.")
                 try:
                     df = pd.read_sql(
                         f"SELECT c.id, comment.id FROM comment INNER JOIN comment as c ON comment.parent_id = c.id LIMIT {limit} OFFSET {limit * offset};",
@@ -59,8 +60,8 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                     for index, row in tqdm.tqdm(df.iterrows(), total=cur_length,
                                                 desc=f"{time_frame} Fetching {time_frame}",
                                                 unit="comments"):
-                        inputs.append((int(row[0]), tokenizer_id))
-                        outputs.append((int(row[1]), tokenizer_id))
+                        inputs.append((int(row[1]), tokenizer_id))
+                        outputs.append((int(row[0]), tokenizer_id))
                     sql = "SELECT tokenized_content FROM tokenized_comment WHERE id = ? AND tokenizer = ?;"
                     try:
                         for data in tqdm.tqdm(inputs, total=len(inputs),
@@ -91,16 +92,30 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                     del inputs, outputs
 
                     with open(filename_input, 'a') as f:
-                        logger.info(f"{time_frame} Writing inputs to {filename_input}")
-                        for sentence in sql_inputs:
-                            f.write(sentence[0] + "\n")
-                        f.close()
+                        if len(sql_inputs) <= 0:
+                            logger.warning(f"{time_frame} No inputs found for {cur_length} comments.")
+                            f.close()
+                        else:
+                            logger.info(f"{time_frame} Writing inputs to {filename_input}")
+                            for sentence in tqdm.tqdm(sql_inputs, total=len(sql_inputs),
+                                                      desc=f"{time_frame} Writing inputs to {filename_input}",
+                                                      unit="samples"):
+                                f.write(sentence[0] + "\n")
+                                no_lines += 1
+                            f.close()
 
                     with open(filename_output, 'a') as f:
-                        logger.info(f"{time_frame} Writing outputs to {filename_output}")
-                        for sentence in sql_outputs:
-                            f.write(sentence[0] + "\n")
-                        f.close()
+                        if len(sql_outputs) <= 0:
+                            logger.warning(f"{time_frame} No outputs found for {cur_length} comments.")
+                            f.close()
+                        else:
+                            logger.info(f"{time_frame} Writing outputs to {filename_output}")
+                            for sentence in tqdm.tqdm(sql_outputs, total=len(sql_outputs),
+                                                      desc=f"{time_frame} Writing inputs to {filename_input}",
+                                                      unit="samples"):
+                                f.write(sentence[0] + "\n")
+                                no_lines += 1
+                            f.close()
 
             logger.info(f"{time_frame} Finished outputting {time_frame}")
             c.close()
