@@ -268,15 +268,7 @@ def check_tokenizer(tokenizer_name: str, override: bool = False):
 
 
 def check_parent(parent_id):
-    comment_ids = [data[1] for data in sql_none_parents]
-    if parent_id in cache['comments'].keys():
-        return cache['comments'][parent_id]
-    elif parent_id in comment_ids:
-        for c_id in comment_ids:
-            if c_id == parent_id:
-                return True
-    else:
-        return False
+    return parent_id in (data[1] for data in sql_none_parents) or parent_id in cache['comments'].keys()
 
 
 def sql_replace_comment(comment_id: str, comment: str, subreddit: str, time: int, score: int):
