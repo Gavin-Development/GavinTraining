@@ -8,6 +8,7 @@ import logging
 import typing
 import re
 import tqdm
+import glob
 
 import pandas as pd
 import tensorflow_datasets as tfds
@@ -36,7 +37,7 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
     for time_frame in time_frames:
         database_name = time_frame + ".db"
         tokenizer_name = os.path.basename(tokenizer_path)
-        logger.info(f"{time_frame}  Tokenizing {database_name} with {tokenizer_name}")
+        logger.info(f"{time_frame} Tokenizing {database_name} with {tokenizer_name}")
         if os.path.exists(tokenizer_path + ".subwords") and os.path.exists(database_path) and os.path.exists(
                 os.path.join(database_path, database_name)):
             tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(tokenizer_path)
@@ -92,7 +93,7 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
             logger.info(f"{time_frame} Finished.")
 
         else:
-            if not os.path.exists(tokenizer_path):
+            if not os.path.exists(tokenizer_path + ".subwords"):
                 logger.error(f"{time_frame} Tokenizer not found.")
             if not os.path.exists(os.path.join(database_path, database_name)):
                 logger.error(f"{time_frame} Database not found.")
@@ -102,5 +103,18 @@ if __name__ == '__main__':
     if len(sys.argv) < 4:
         print("Usage: python3 tokenize_comments.py <tokenizer_path> <database_path> <time_frame>")
         sys.exit(1)
-    databases = [f"{sys.argv[3]}-%.2d" % i for i in range(1, 13)]
+    if not os.path.exists(sys.argv[1] + ".subwords"):
+        print(f"Tokenizer {sys.argv[1]} not found.")
+        sys.exit(1)
+    if not os.path.exists(sys.argv[2]):
+        print(f"Database path {sys.argv[2]} not found.")
+        sys.exit(1)
+    if not os.path.exists(os.path.join(sys.argv[2], sys.argv[3])) and sys.argv[3] not in ['all', '*']:
+        print(f"Database {sys.argv[3]} not found.")
+        sys.exit(1)
+    if sys.argv[3] in ["*", "all"]:
+        databases = glob.glob(f"{sys.argv[2]}/*.db")
+        databases = [os.path.basename(database)[:-3] for database in databases]
+    else:
+        databases = [f"{sys.argv[3]}-%.2d" % i for i in range(1, 13)]
     main(sys.argv[1], sys.argv[2], databases)
