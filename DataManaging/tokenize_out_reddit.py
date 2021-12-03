@@ -100,7 +100,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                             for sentence in tqdm.tqdm(sql_inputs, total=len(sql_inputs),
                                                       desc=f"{time_frame} Writing inputs to {filename_input}",
                                                       unit="samples"):
-                                f.write(sentence[0] + "\n")
+                                f.write(sentence + "\n")
                                 no_lines += 1
                             f.close()
 
@@ -113,7 +113,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                             for sentence in tqdm.tqdm(sql_outputs, total=len(sql_outputs),
                                                       desc=f"{time_frame} Writing inputs to {filename_input}",
                                                       unit="samples"):
-                                f.write(sentence[0] + "\n")
+                                f.write(sentence + "\n")
                                 no_lines += 1
                             f.close()
 
