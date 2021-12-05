@@ -95,6 +95,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                         if len(sql_inputs) <= 0:
                             logger.warning(f"{time_frame} No inputs found for {cur_length} comments.")
                             f.close()
+                            continue
                         else:
                             logger.info(f"{time_frame} Writing inputs to {filename_input}")
                             for sentence in tqdm.tqdm(sql_inputs, total=len(sql_inputs),
@@ -108,6 +109,7 @@ def main(database_path: str, time_frames: typing.List[str], file_output_path: st
                         if len(sql_outputs) <= 0:
                             logger.warning(f"{time_frame} No outputs found for {cur_length} comments.")
                             f.close()
+                            continue
                         else:
                             logger.info(f"{time_frame} Writing outputs to {filename_output}")
                             for sentence in tqdm.tqdm(sql_outputs, total=len(sql_outputs),
