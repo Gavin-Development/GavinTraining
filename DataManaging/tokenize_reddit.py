@@ -34,6 +34,7 @@ def preprocess_sentence(sentence):
 
 
 def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str]):
+    total_tokenized_comments = 0
     for time_frame in time_frames:
         database_name = time_frame + ".db"
         tokenizer_name = os.path.basename(tokenizer_path)
@@ -78,6 +79,7 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
                             tokenized_comments.append(
                                 (str(base64.b64encode(pickle.dumps(tokenizer.encode(preprocess_sentence(comment))))),
                                  int(table_id), int(tokenizer_row_id)))
+                            total_tokenized_comments += 1
 
                         c.executemany(
                             "INSERT INTO main.tokenized_comment (tokenized_content, content_id, tokenizer) VALUES (?,?,?)",
@@ -90,6 +92,7 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
             shutil.copy('./cache/' + database_name, database_path)
             os.remove('./cache/' + database_name)
             logger.info(f"{time_frame} {count * limit} comments tokenized.")
+            logger.info(f"{time_frame} {total_tokenized_comments} total tokenized comments.")
             logger.info(f"{time_frame} Finished.")
 
         else:
@@ -108,9 +111,6 @@ if __name__ == '__main__':
         sys.exit(1)
     if not os.path.exists(sys.argv[2]):
         print(f"Database path {sys.argv[2]} not found.")
-        sys.exit(1)
-    if not os.path.exists(os.path.join(sys.argv[2], sys.argv[3])) and sys.argv[3] not in ['all', '*']:
-        print(f"Database {sys.argv[3]} not found.")
         sys.exit(1)
     if sys.argv[3] in ["*", "all"]:
         databases = glob.glob(f"{sys.argv[2]}/*.db")
