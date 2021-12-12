@@ -63,6 +63,7 @@ TOKENIZER_PATH = input("TOKENIZER_PATH: ")
 EPOCHS = int(input("EPOCHS: "))
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
+dataset_file_name = "Tokenizer-3"
 if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
     with model.strategy.scope():
@@ -71,7 +72,7 @@ if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model.metadata = metadata
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
-                                             filename=os.path.basename(TOKENIZER_PATH),
+                                             filename=dataset_file_name,
                                              s_token=model.start_token,
                                              e_token=model.end_token, max_len=model.max_len,
                                              python_legacy=PYTHON_LEGACY,
@@ -116,7 +117,7 @@ else:
             model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
-                                             filename=os.path.basename(TOKENIZER_PATH),
+                                             filename=dataset_file_name,
                                              s_token=model.start_token,
                                              e_token=model.end_token, max_len=MAX_LENGTH,
                                              python_legacy=PYTHON_LEGACY,

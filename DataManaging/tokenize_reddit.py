@@ -21,18 +21,6 @@ logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO,
 logger = logging.getLogger(__name__)
 
 
-def preprocess_sentence(sentence):
-    sentence = sentence.strip()
-    # creating a space between a word and the punctuation following it
-    # eg: "he is a boy." => "he is a boy ."
-    sentence = re.sub(r"([?.!,'*\"])", r" \1 ", sentence)
-    # replacing everything with space except (a-z, A-Z, ".", "?", "!", ",", "'")
-    sentence = re.sub(r"[^a-zA-z?.!,'*\"]+", " ", sentence)
-    sentence = sentence.strip()
-    # adding start and an end token to the sentence
-    return sentence
-
-
 def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str]):
     total_tokenized_comments = 0
     for time_frame in time_frames:
@@ -77,7 +65,7 @@ def main(tokenizer_path: str, database_path: str, time_frames: typing.List[str])
                                                            desc=f"Tokenizing {time_frame}",
                                                            total=cur_length, unit='comments'):
                             tokenized_comments.append(
-                                (str(base64.b64encode(pickle.dumps(tokenizer.encode(preprocess_sentence(comment))))),
+                                (str(base64.b64encode(pickle.dumps(tokenizer.encode(comment)))),
                                  int(table_id), int(tokenizer_row_id)))
                             total_tokenized_comments += 1
 
