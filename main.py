@@ -7,7 +7,7 @@ os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 # os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
-from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration
+from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration, FNetIntegration
 from GavinBackend.GavinCore.datasets import DatasetAPICreator
 from GavinBackend.DataParsers.load_data import load_tokenized_data
 from GavinBackend.GavinCore.metrics import Perplexity
@@ -27,11 +27,13 @@ if not os.path.exists("bunchOfLogs"):
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
-MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`]: ")
+MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`, `fnet`]: ")
 if MODEL_TYPE.lower() == "performer":
     MODEL_TYPE = PerformerIntegration
 elif MODEL_TYPE.lower() == "transformer":
     MODEL_TYPE = TransformerIntegration
+elif MODEL_TYPE.lower() == "fnet":
+    MODEL_TYPE = FNetIntegration
 else:
     print("Invalid model type. Quitting")
     quit()
@@ -106,6 +108,14 @@ else:
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
         with model.strategy.scope():
             model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
+    elif MODEL_TYPE == FNetIntegration:
+        model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
+                           num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
+                           max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
+                           metadata=metadata,
+                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
+        with model.strategy.scope():
+            model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     else:
         NUM_FEATURES = int(input("RANDOM_FEATURES: "))
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
@@ -130,6 +140,10 @@ else:
                                                                        vocab_size=model.vocab_size)
 
     callbacks = model.get_default_callbacks()
+    callbacks.pop(1)
+    callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
+                                                       embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
+                                                       profile_batch=(1, 10)))
 
     model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
     model.model.summary()
