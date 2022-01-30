@@ -4,10 +4,11 @@ if __name__ == "__main__":
     import datetime
     import time
     import shutil
+    import logging
     from itertools import product
 
     os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
     import tensorflow as tf
     import tensorflow_datasets as tfds
     from tensorboard.plugins.hparams import api as hp
@@ -16,27 +17,31 @@ if __name__ == "__main__":
     from GavinBackend.DataParsers.load_data import load_tokenized_data
 
     isPreformer = True
+    logging.basicConfig(level=logging.INFO,
+                        format='%(process)d-%(levelname)s %(asctime)s - %(message)s',
+                        datefmt='%d-%b-%y %H:%M:%S')
+    logger = logging.getLogger(__name__)
     physical_devices = tf.config.list_physical_devices('GPU')
     try:
         for device in physical_devices:
             tf.config.experimental.set_memory_growth(device, True)
     except Exception as e:
-        print(f"Error on Memory Growth Setting. {e}")
+        logger.warning(f"Error on Memory Growth Setting. {e}")
     else:
-        print("Memory Growth Set to True.")
+        logger.info("Memory Growth Set to True.")
 
-    HP_NUM_UNITS = hp.HParam('num_units', hp.Discrete([2048, 4096]))
-    HP_MAX_SAMPLES = hp.HParam('max_samples', hp.Discrete([100_000]))
-    HP_D_MODEL = hp.HParam('d_model', hp.Discrete([512, 1024]))
-    HP_NUM_FEATURES = hp.HParam('num_features', hp.Discrete([128, 256, 512]))
-    HP_NUM_LAYERS = hp.HParam('num_layers', hp.Discrete([2, 4, 6]))
+    HP_NUM_UNITS = hp.HParam('num_units', hp.Discrete([1024]))
+    HP_MAX_SAMPLES = hp.HParam('max_samples', hp.Discrete([1_000_000, 2_000_000, 5_000_000]))
+    HP_D_MODEL = hp.HParam('d_model', hp.Discrete([256]))
+    HP_NUM_FEATURES = hp.HParam('num_features', hp.Discrete([128, 256]))
+    HP_NUM_LAYERS = hp.HParam('num_layers', hp.Discrete([2, 4]))
 
-    # Non testing params defaults
-    HP_NUM_HEADS = hp.HParam('num_heads', hp.Discrete([8, 16]))
+    # Non-testing params defaults
+    HP_NUM_HEADS = hp.HParam('num_heads', hp.Discrete([8]))
     HP_MAX_LENGTH = hp.HParam('max_length', hp.Discrete([30]))
-    HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.3))
+    HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.1))
     HP_BUFFER_SIZE = hp.HParam('buffer_size', hp.Discrete([20_000]))
-    HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([16, 32]))
+    HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([32]))
     HP_WARMUP_STEPS = hp.HParam('warmup_steps', hp.Discrete([4000]))
     HP_EPOCHS = hp.HParam('epochs', hp.Discrete([3]))
 
@@ -61,9 +66,9 @@ if __name__ == "__main__":
         tf.keras.backend.clear_session()  # Reduces the amount of memory this will use.
 
         run_name = "run-%d" % session_num
-        print(
+        logger.info(
             f"--- Starting trial: {run_name} Completed: {round(((session_num / num_runs) * 100), 2)}%")
-        print(f"""\
+        logger.info(f"""\
 NUM_LAYERS: {num_layers}
 NUM_UNITS: {num_units}
 D_MODEL: {d_model}
@@ -106,8 +111,7 @@ EPOCHS: {epochs}
             questions, answers = load_tokenized_data(
                 max_samples=max_samples,
                 data_path="D:\\Datasets\\reddit_data\\files\\",
-                tokenizer_name=os.path.basename(
-                    'Tokenizer-3'),
+                filename='Tokenizer-3',
                 s_token=model.start_token,
                 e_token=model.end_token, max_len=max_length)
             # questions = tf.keras.preprocessing.sequence.pad_sequences(questions,
@@ -147,7 +151,7 @@ EPOCHS: {epochs}
                       callbacks=callbacks)
             session_num += 1
         except Exception as e:
-            print(
+            logger.error(
                 f"""[{datetime.datetime.now().strftime('%m-%d-%Y %H:%M:%S.%f')[:-2]}] Logged Error on Run: {run_name}
 Model: {MODEL_NAME} 
 Stats: 
@@ -165,5 +169,5 @@ Error: {e}\n\n""")
             shutil.rmtree(os.path.join(LOG_DIR, MODEL_NAME))
             time.sleep(2)
             continue
-print(
-    f"[{datetime.datetime.now().strftime('%m-%d-%Y %H:%M:%S.%f')[:-2]}] Finished all runs.")
+    logger.info(
+        f"[{datetime.datetime.now().strftime('%m-%d-%Y %H:%M:%S.%f')[:-2]}] Finished all runs.")

@@ -143,7 +143,7 @@ else:
     callbacks.pop(1)
     callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
                                                        embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
-                                                       profile_batch=(1, 10)))
+                                                       profile_batch=(100, 110)))
 
     model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
     model.model.summary()
