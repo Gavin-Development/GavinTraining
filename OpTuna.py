@@ -1,7 +1,5 @@
 import os
-import json
 import platform
-import shutil
 import optuna
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
@@ -26,6 +24,24 @@ if not os.path.exists("bunchOfLogs"):
     os.mkdir("./bunchOfLogs/")
 if not os.path.exists("bunchOfLogs/optuna"):
     os.mkdir("./bunchOfLogs/optuna/")
+
+
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+STUDY_NAME = os.getenv("STUDY_NAME")
+if None in [DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, STUDY_NAME]:
+    raise ValueError("Please set DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME")
+else:
+    print("DB_HOST:", DB_HOST)
+    print("DB_PORT:", DB_PORT)
+    print("DB_USER:", DB_USER)
+    print("DB_PASSWORD:", DB_PASSWORD)
+    print("DB_NAME:", DB_NAME)
+    print("STUDY_NAME:", STUDY_NAME)
+
 
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
@@ -70,7 +86,11 @@ def create_model(trail: optuna.trial.Trial):
     if model_option == "Performer":
         num_features = trail.suggest_int("num_features", d_model // 2, d_model, step=d_model // 4)
         kwargs['num_features'] = num_features
-
+    print(f"Model Type: {model_option}")
+    options_string = ""
+    for k, v in kwargs.items():
+        options_string += f"{k}={v}\n"
+    print(f"Model Options: \n\n{options_string}")
     return model_type(**kwargs)
 
 
@@ -99,8 +119,12 @@ def objective(trial: optuna.trial.Trial):
 
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=100, show_progress_bar=True, catch=(tf.errors.ResourceExhaustedError,))
+    # study = optuna.create_study(direction="maximize")
+    study = optuna.load_study(
+        study_name=STUDY_NAME,
+        storage=f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+    )
+    study.optimize(objective, n_trials=100, catch=(tf.errors.ResourceExhaustedError,))
 
     print("Number of finished trials: ", len(study.trials))
 
