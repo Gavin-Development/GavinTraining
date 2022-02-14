@@ -118,7 +118,7 @@ def objective(trial: optuna.trial.Trial):
                                                                        vocab_size=model.vocab_size)
     callbacks = model.get_default_callbacks()
     history = model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
-    return history.history['accuracy'][-1]
+    return history.history['sparse_categorical_accuracy'][-1]
 
 
 if __name__ == "__main__":
