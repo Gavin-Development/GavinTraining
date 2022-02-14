@@ -30,12 +30,12 @@ if not os.path.exists("bunchOfLogs/optuna"):
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
-MAX_SAMPLES = 1_000_000
+MAX_SAMPLES = 100_000
 BATCH_SIZE = 32
 BUFFER_SIZE = 5_000
 TOKENIZER_PATH = "Tokenizer-3"
 dataset_file_name = "Tokenizer-3"
-EPOCHS = 10
+EPOCHS = 5
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
 SAVE_FREQ = 2000
@@ -100,7 +100,7 @@ def objective(trial: optuna.trial.Trial):
 
 if __name__ == "__main__":
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=100)
+    study.optimize(objective, n_trials=100, show_progress_bar=True, catch=(tf.errors.ResourceExhaustedError,))
 
     print("Number of finished trials: ", len(study.trials))
 
