@@ -4,3 +4,4 @@ zstandard>=0.15.2
 pandas==1.2.3
 psutil==5.8.0
 requests==2.25.1
+optuna==2.10.0
