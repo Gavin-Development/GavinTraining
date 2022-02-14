@@ -38,13 +38,13 @@ DB_NAME = os.getenv("DB_NAME")
 STUDY_NAME = os.getenv("STUDY_NAME")
 if None in [DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, STUDY_NAME]:
     raise ValueError("Please set DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME")
-else:
-    print("DB_HOST:", DB_HOST)
-    print("DB_PORT:", DB_PORT)
-    print("DB_USER:", DB_USER)
-    print("DB_PASSWORD:", DB_PASSWORD)
-    print("DB_NAME:", DB_NAME)
-    print("STUDY_NAME:", STUDY_NAME)
+
+print("DB_HOST:", DB_HOST)
+print("DB_PORT:", DB_PORT)
+print("DB_USER:", DB_USER)
+print("DB_PASSWORD:", DB_PASSWORD)
+print("DB_NAME:", DB_NAME)
+print("STUDY_NAME:", STUDY_NAME)
 
 
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
