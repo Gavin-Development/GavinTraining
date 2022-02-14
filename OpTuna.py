@@ -30,7 +30,7 @@ if not os.path.exists("bunchOfLogs/optuna"):
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
-MAX_SAMPLES = 5_000_000
+MAX_SAMPLES = 1_000_000
 BATCH_SIZE = 32
 BUFFER_SIZE = 5_000
 TOKENIZER_PATH = "Tokenizer-3"
@@ -55,12 +55,12 @@ def create_model(trail: optuna.trial.Trial):
         model_type = FNetIntegration
     else:
         raise ValueError(f"Unknown Model Option: {model_option}")
-    max_length = trail.suggest_int("MAX_LENGTH", 10, 100)
-    num_layers = trail.suggest_int("NUM_LAYERS", 1, 10)
-    d_model = trail.suggest_int("D_MODEL", 128, 512)
-    num_heads = trail.suggest_int("NUM_HEADS", 1, 8)
-    units = trail.suggest_int("UNITS", 512, 4096)
-    dropout = trail.suggest_float("DROPOUT", 0.1, 0.5)
+    max_length = trail.suggest_int("MAX_LENGTH", 10, 100, step=10)
+    num_layers = trail.suggest_int("NUM_LAYERS", 2, 10, step=1)
+    d_model = trail.suggest_int("D_MODEL", 128, 512, step=64)
+    num_heads = trail.suggest_int("NUM_HEADS", 2, 8, step=2)
+    units = trail.suggest_int("UNITS", 512, 4096, step=512)
+    dropout = trail.suggest_float("DROPOUT", 0.01, 0.1, step=0.01)
     kwargs['max_len'] = max_length
     kwargs['num_layers'] = num_layers
     kwargs['d_model'] = d_model
@@ -68,7 +68,7 @@ def create_model(trail: optuna.trial.Trial):
     kwargs['units'] = units
     kwargs['dropout'] = dropout
     if model_option == "Performer":
-        num_features = trail.suggest_int("num_features", d_model // 2, d_model)
+        num_features = trail.suggest_int("num_features", d_model // 2, d_model, step=d_model // 4)
         kwargs['num_features'] = num_features
 
     return model_type(**kwargs)
@@ -105,10 +105,10 @@ if __name__ == "__main__":
     print("Number of finished trials: ", len(study.trials))
 
     print("Best trial:")
-    trial = study.best_trial
+    best_trial = study.best_trial
 
-    print("  Value: ", trial.value)
+    print("  Value: ", best_trial.value)
 
     print("  Params: ")
-    for key, value in trial.params.items():
+    for key, value in best_trial.params.items():
         print("    {}: {}".format(key, value))
