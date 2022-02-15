@@ -50,14 +50,14 @@ PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
 MAX_SAMPLES = 100_000
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 BUFFER_SIZE = 5_000
 TOKENIZER_PATH = "Tokenizer-3"
 dataset_file_name = "Tokenizer-3"
 EPOCHS = 5
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
-SAVE_FREQ = 2000
+SAVE_FREQ = 500
 kwargs = {'save_freq': SAVE_FREQ, 'batch_size': BATCH_SIZE, 'tokenizer': tokenizer,
           'base_log_dir': "bunchOfLogs/optuna"}
 
@@ -77,10 +77,10 @@ def create_model(trail: optuna.trial.Trial):
         raise ValueError(f"Unknown Model Option: {model_option}")
     max_length = trail.suggest_int("MAX_LENGTH", 10, 100, step=10)
     num_layers = trail.suggest_int("NUM_LAYERS", 2, 10, step=1)
-    d_model = trail.suggest_int("D_MODEL", 128, 512, step=64)
-    num_heads = trail.suggest_int("NUM_HEADS", 2, 8, step=2)
+    d_model = trail.suggest_int("D_MODEL", 128, 2048, step=64)
+    num_heads = trail.suggest_int("NUM_HEADS", 2, 16, step=2)
     units = trail.suggest_int("UNITS", 512, 4096, step=512)
-    dropout = trail.suggest_float("DROPOUT", 0.01, 0.1, step=0.01)
+    dropout = trail.suggest_float("DROPOUT", 0.01, 0.1, step=0.02)
     kwargs['max_len'] = max_length
     kwargs['num_layers'] = num_layers
     kwargs['d_model'] = d_model
