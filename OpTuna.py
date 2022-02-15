@@ -50,7 +50,7 @@ if None in [DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, STUDY_NAME]:
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
-MAX_SAMPLES = 500_000
+MAX_SAMPLES = 100_000
 BATCH_SIZE = 4
 BUFFER_SIZE = 5_000
 TOKENIZER_PATH = "Tokenizer-3"
