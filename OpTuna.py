@@ -128,7 +128,7 @@ if __name__ == "__main__":
         study_name=STUDY_NAME,
         storage=f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
     )
-    study.optimize(objective, n_trials=100, catch=(tf.errors.ResourceExhaustedError, AssertionError))
+    study.optimize(objective, n_trials=100, catch=(tf.errors.ResourceExhaustedError, AssertionError, OSError))
 
     print("Number of finished trials: ", len(study.trials))
 
