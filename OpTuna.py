@@ -5,6 +5,7 @@ load_dotenv()
 import os
 import platform
 import optuna
+import time
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
@@ -49,8 +50,8 @@ if None in [DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, STUDY_NAME]:
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
-MAX_SAMPLES = 100_000
-BATCH_SIZE = 8
+MAX_SAMPLES = 500_000
+BATCH_SIZE = 4
 BUFFER_SIZE = 5_000
 TOKENIZER_PATH = "Tokenizer-3"
 dataset_file_name = "Tokenizer-3"
@@ -64,6 +65,7 @@ kwargs = {'save_freq': SAVE_FREQ, 'batch_size': BATCH_SIZE, 'tokenizer': tokeniz
 
 def create_model(trail: optuna.trial.Trial):
     tf.keras.backend.clear_session()
+    time.sleep(3)
     kwargs['name'] = f"{trail.number}-Gavin-Optuna"
     model_options = ["Transformer", "Performer", "FNet"]
     model_option = trail.suggest_categorical("model_option", model_options)
@@ -75,9 +77,9 @@ def create_model(trail: optuna.trial.Trial):
         model_type = FNetIntegration
     else:
         raise ValueError(f"Unknown Model Option: {model_option}")
-    max_length = trail.suggest_int("MAX_LENGTH", 10, 100, step=10)
-    num_layers = trail.suggest_int("NUM_LAYERS", 2, 10, step=1)
-    d_model = trail.suggest_int("D_MODEL", 128, 2048, step=64)
+    max_length = trail.suggest_int("MAX_LENGTH", 10, 30, step=10)
+    num_layers = trail.suggest_int("NUM_LAYERS", 2, 6, step=1)
+    d_model = trail.suggest_int("D_MODEL", 128, 1024, step=64)
     num_heads = trail.suggest_int("NUM_HEADS", 2, 16, step=2)
     units = trail.suggest_int("UNITS", 512, 4096, step=512)
     dropout = trail.suggest_float("DROPOUT", 0.01, 0.1, step=0.02)
