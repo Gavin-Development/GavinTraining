@@ -8,7 +8,7 @@ import optuna
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
-# os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration, FNetIntegration
 from GavinBackend.GavinCore.datasets import DatasetAPICreator
@@ -63,6 +63,7 @@ kwargs = {'save_freq': SAVE_FREQ, 'batch_size': BATCH_SIZE, 'tokenizer': tokeniz
 
 
 def create_model(trail: optuna.trial.Trial):
+    tf.keras.backend.clear_session()
     kwargs['name'] = f"{trail.number}-Gavin-Optuna"
     model_options = ["Transformer", "Performer", "FNet"]
     model_option = trail.suggest_categorical("model_option", model_options)
@@ -127,7 +128,7 @@ if __name__ == "__main__":
         study_name=STUDY_NAME,
         storage=f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
     )
-    study.optimize(objective, n_trials=100, catch=(tf.errors.ResourceExhaustedError,))
+    study.optimize(objective, n_trials=100, catch=(tf.errors.ResourceExhaustedError, AssertionError))
 
     print("Number of finished trials: ", len(study.trials))
 
