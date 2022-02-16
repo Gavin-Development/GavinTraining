@@ -77,7 +77,7 @@ def create_model(trail: optuna.trial.Trial):
         model_type = FNetIntegration
     else:
         raise ValueError(f"Unknown Model Option: {model_option}")
-    max_length = trail.suggest_int("MAX_LENGTH", 10, 30, step=10)
+    max_length = trail.suggest_int("MAX_LENGTH", 30, 50, step=10)
     num_layers = trail.suggest_int("NUM_LAYERS", 2, 6, step=1)
     d_model = trail.suggest_int("D_MODEL", 128, 1024, step=64)
     num_heads = trail.suggest_int("NUM_HEADS", 2, 16, step=2)
