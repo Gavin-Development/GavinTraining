@@ -11,6 +11,7 @@ from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, Perf
 from GavinBackend.GavinCore.datasets import DatasetAPICreator
 from GavinBackend.DataParsers.load_data import load_tokenized_data
 from GavinBackend.GavinCore.metrics import Perplexity
+from GavinBackend.GavinCore.callbacks import PredictCallback
 
 physical_devices = tf.config.list_physical_devices('GPU')
 try:
@@ -86,6 +87,14 @@ if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
                                                                        batch_size=BATCH_SIZE,
                                                                        vocab_size=model.vocab_size)
     callbacks = model.get_default_callbacks()
+    callbacks.pop(1)
+    callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
+                                                       embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
+                                                       profile_batch=(100, 110)))
+    callbacks.pop(len(callbacks) - 1)
+    callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
+                                     max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
+                                     wrapper_model=model))
     model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
 else:
     MAX_LENGTH = int(input("MAX_LENGTH: "))
@@ -144,6 +153,10 @@ else:
     callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
                                                        embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
                                                        profile_batch=(100, 110)))
+    callbacks.pop(len(callbacks) - 1)
+    callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
+                                     max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
+                                     wrapper_model=model))
 
     model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
     model.model.summary()
