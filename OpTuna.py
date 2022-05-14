@@ -67,7 +67,7 @@ def create_model(trail: optuna.trial.Trial):
     tf.keras.backend.clear_session()
     time.sleep(3)
     kwargs['name'] = f"{trail.number}-Gavin-Optuna"
-    model_options = ["Transformer", "Performer", "FNet"]
+    model_options = ["Transformer", "Performer"]
     model_option = trail.suggest_categorical("model_option", model_options)
     if model_option == "Transformer":
         model_type = TransformerIntegration
@@ -77,8 +77,8 @@ def create_model(trail: optuna.trial.Trial):
         model_type = FNetIntegration
     else:
         raise ValueError(f"Unknown Model Option: {model_option}")
-    max_length = trail.suggest_int("MAX_LENGTH", 30, 50, step=10)
-    num_layers = trail.suggest_int("NUM_LAYERS", 2, 6, step=1)
+    max_length = trail.suggest_int("MAX_LENGTH", 30, 40, step=10)
+    num_layers = trail.suggest_int("NUM_LAYERS", 2, 6, step=2)
     d_model = trail.suggest_int("D_MODEL", 128, 1024, step=64)
     num_heads = trail.suggest_int("NUM_HEADS", 2, 16, step=2)
     units = trail.suggest_int("UNITS", 512, 4096, step=512)
@@ -121,7 +121,7 @@ def objective(trial: optuna.trial.Trial):
                                                                        vocab_size=model.vocab_size)
     callbacks = model.get_default_callbacks()
     history = model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
-    return history.history['sparse_categorical_accuracy'][-1]
+    return history.history['loss'][-1]
 
 
 if __name__ == "__main__":
