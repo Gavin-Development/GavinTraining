@@ -28,6 +28,7 @@ if not os.path.exists("bunchOfLogs"):
 PYTHON_LEGACY = False if "windows" in platform.system().lower() else True
 CPP_LEGACY = False
 DATASET_PATH = input("Please enter dataset path: ")
+PYTHON_LEGACY = True if "https" in DATASET_PATH else PYTHON_LEGACY
 MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`, `fnet`]: ")
 if MODEL_TYPE.lower() == "performer":
     MODEL_TYPE = PerformerIntegration
