@@ -116,16 +116,12 @@ else:
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
-        with model.strategy.scope():
-            model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     elif MODEL_TYPE == FNetIntegration:
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
-        with model.strategy.scope():
-            model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     else:
         NUM_FEATURES = int(input("RANDOM_FEATURES: "))
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
@@ -133,8 +129,6 @@ else:
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
                            num_features=NUM_FEATURES)
-        with model.strategy.scope():
-            model.metrics.append(Perplexity(max_len=MAX_LENGTH, vocab_size=tokenizer.vocab_size))
     questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
                                              data_path=DATASET_PATH,
                                              filename=dataset_file_name,
