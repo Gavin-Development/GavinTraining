@@ -1,18 +1,15 @@
 import os
 import json
-import platform
 import shutil
 import numpy as np
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
-# os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration, FNetIntegration, PreTrainedEmbeddingTransformerIntegration, \
     RotaryTransformerIntegration
-from GavinBackend.GavinCore.datasets import DatasetAPICreator
-from GavinBackend.DataParsers.load_data import load_tokenized_data
-from GavinBackend.GavinCore.metrics import Perplexity
+from GavinBackend.GavinCore.datasets import DatasetAPICreator, DatasetDirectFromFileAPICreator
+from GavinBackend.GavinCore.load_data import load_tokenized_data
 from GavinBackend.GavinCore.callbacks import PredictCallback
 
 
@@ -26,14 +23,47 @@ def get_embedding_idx(embedding_path):
     return embedding_idx
 
 
-def get_embedding_matrix(embedding_idx, tokenizer: tfds.deprecated.text.SubwordTextEncoder):
+def get_embedding_matrix(embedding_idx, i_tokenizer: tfds.deprecated.text.SubwordTextEncoder):
     i_dff = int(embedding_idx.get(list(embedding_idx.keys())[0]).shape[0])
-    embedding_matrix = np.zeros((len(tokenizer.subwords) + 1, i_dff))
-    for i, word in enumerate(tokenizer.subwords):
+    embedding_matrix = np.zeros((len(i_tokenizer.subwords) + 1, i_dff))
+    for i, word in enumerate(i_tokenizer.subwords):
         embedding_vector = embedding_idx.get(word)
         if embedding_vector is not None and embedding_vector.shape[0] == i_dff:
             embedding_matrix[i] = embedding_vector
     return embedding_matrix, i_dff
+
+
+def get_train_data(max_samples, dataset_path, file_name, t_model, buffer_size, batch_size, python_legacy=False, cpp_legacy=False,
+                   use_memory_loaders=True):
+    if python_legacy or use_memory_loaders:
+        questions, answers = load_tokenized_data(max_samples=max_samples,
+                                                 data_path=dataset_path,
+                                                 filename=file_name,
+                                                 s_token=t_model.start_token,
+                                                 e_token=t_model.end_token, max_len=t_model.max_len,
+                                                 python_legacy=python_legacy,
+                                                 cpp_legacy=cpp_legacy)
+
+        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=t_model.max_len, padding='post')
+        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=t_model.max_len, padding='post')
+        d_t, d_v = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=buffer_size,
+                                                         batch_size=batch_size,
+                                                         vocab_size=t_model.vocab_size)
+    else:
+        path_to = os.path.join(DATASET_PATH, "{}-{}.BIN")
+        # noinspection StrFormat
+        d_t, d_v = DatasetDirectFromFileAPICreator.create_data_objects(questions_file=path_to.format(file_name, "from"),
+                                                                       answers_file=path_to.format(file_name, "to"),
+                                                                       buffer_size=buffer_size,
+                                                                       batch_size=batch_size,
+                                                                       vocab_size=t_model.vocab_size,
+                                                                       max_length=t_model.max_len,
+                                                                       number_of_samples=max_samples,
+                                                                       start_token=t_model.start_token[0],
+                                                                       end_token=t_model.end_token[0],
+                                                                       padding_value=0)
+
+    return d_t, d_v
 
 
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -50,9 +80,11 @@ if not os.path.exists("bunchOfLogs"):
 
 PYTHON_LEGACY = False
 CPP_LEGACY = False
+
 DATASET_PATH = input("Please enter dataset path: ")
 PYTHON_LEGACY = True if "https" in DATASET_PATH else PYTHON_LEGACY
 MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`, `fnet`, `pretrained`, `rotary`]: ")
+
 if MODEL_TYPE.lower() == "performer":
     MODEL_TYPE = PerformerIntegration
 elif MODEL_TYPE.lower() == "transformer":
@@ -68,6 +100,7 @@ else:
     quit()
 LOG_DIR = './bunchOfLogs'
 MODEL_NAME = input("Please enter Model_Name: ")
+
 EMBEDDING_FILE = None
 if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     try:
@@ -86,6 +119,9 @@ if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
         answer = input("No metadata found. Would you like to delete the model dir? y/n: ")
         if answer.strip() == "y":
             shutil.rmtree(os.path.join(LOG_DIR, MODEL_NAME))
+        MAX_SAMPLES = None
+        BATCH_SIZE = None
+        BUFFER_SIZE = None
         quit()
 else:
     MAX_SAMPLES = int(input("MAX_SAMPLES: "))
@@ -105,33 +141,6 @@ dataset_file_name = "Tokenizer-3"
 if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
     model.metadata = metadata
-    questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
-                                             data_path=DATASET_PATH,
-                                             filename=dataset_file_name,
-                                             s_token=model.start_token,
-                                             e_token=model.end_token, max_len=model.max_len,
-                                             python_legacy=PYTHON_LEGACY,
-                                             cpp_legacy=CPP_LEGACY)
-    if PYTHON_LEGACY:
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
-    dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
-                                                                       batch_size=BATCH_SIZE,
-                                                                       vocab_size=model.vocab_size)
-
-    callbacks = model.get_default_callbacks()
-    callbacks.pop(1)
-    callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
-                                                       embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
-                                                       profile_batch=(100, 110), embeddings_freq=1))
-    callbacks.pop(len(callbacks) - 1)
-    callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
-                                     max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
-                                     wrapper_model=model))
-    callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, restore_best_weights=True))
-
-    model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
-    model.model.summary()
 else:
     MAX_LENGTH = int(input("MAX_LENGTH: "))
     NUM_LAYERS = int(input("NUM_LAYERS: "))
@@ -172,30 +181,26 @@ else:
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
                            num_features=NUM_FEATURES)
-    questions, answers = load_tokenized_data(max_samples=MAX_SAMPLES,
-                                             data_path=DATASET_PATH,
-                                             filename=dataset_file_name,
-                                             s_token=model.start_token,
-                                             e_token=model.end_token, max_len=MAX_LENGTH,
-                                             python_legacy=PYTHON_LEGACY,
-                                             cpp_legacy=CPP_LEGACY)
-    if PYTHON_LEGACY:
-        questions = tf.keras.preprocessing.sequence.pad_sequences(questions, maxlen=model.max_len, padding='post')
-        answers = tf.keras.preprocessing.sequence.pad_sequences(answers, maxlen=model.max_len, padding='post')
-    dataset_train, dataset_val = DatasetAPICreator.create_data_objects(questions, answers, buffer_size=BUFFER_SIZE,
-                                                                       batch_size=BATCH_SIZE,
-                                                                       vocab_size=model.vocab_size)
+    else:
+        model = None
+        quit(-1)
 
-    callbacks = model.get_default_callbacks()
-    callbacks.pop(1)
-    callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
-                                                       embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
-                                                       profile_batch=(100, 110), embeddings_freq=1))
-    callbacks.pop(len(callbacks) - 1)
-    callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
-                                     max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
-                                     wrapper_model=model))
-    callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, restore_best_weights=True))
+memory_load = bool(input("Would you like to stream samples direct from file? y/n: ").lower() in ["n", "no"])
 
-    model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
-    model.model.summary()
+dataset_train, dataset_val = get_train_data(max_samples=MAX_SAMPLES, dataset_path=DATASET_PATH, file_name=dataset_file_name, t_model=model,
+                                            buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE, python_legacy=PYTHON_LEGACY, cpp_legacy=CPP_LEGACY,
+                                            use_memory_loaders=memory_load)
+
+callbacks = model.get_default_callbacks()
+callbacks.pop(1)
+callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
+                                                   embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
+                                                   profile_batch=(100, 110), embeddings_freq=1))
+callbacks.pop(len(callbacks) - 1)
+callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
+                                 max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
+                                 wrapper_model=model))
+callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, restore_best_weights=True))
+
+model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks, steps_per_epoch=MAX_SAMPLES // BATCH_SIZE)
+model.model.summary()
