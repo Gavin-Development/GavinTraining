@@ -44,6 +44,7 @@ cache = {'subreddits': [], 'tokenizers': [], 'comments': {}}
 sql_none_parents = []
 sql_parents = []
 sql_update = []
+comment_ids = []
 
 
 if len(sys.argv) >= 6:
@@ -106,6 +107,7 @@ def acceptable(data: str):
 def run_sql_insert_or_update(data, insertion_type: InsertionType = InsertionType.INSERT_NO_PARENT):
     if insertion_type == InsertionType.INSERT_NO_PARENT:
         sql_none_parents.append(data)
+        comment_ids.append(data[1])  # Append comment ID to list, to stop having to iterate through a list 2x causing O(N^2) complexity
     elif insertion_type == InsertionType.INSERT_PARENT:
         sql_parents.append(data)
     elif insertion_type == InsertionType.UPDATE_CHILD:
@@ -268,12 +270,18 @@ def check_tokenizer(tokenizer_name: str, override: bool = False):
 
 
 def check_parent(parent_id):
-    return parent_id in (data[1] for data in sql_none_parents) or parent_id in cache['comments'].keys()
+    # Rewritten to check cache first
+    # return parent_id in (data[1] for data in sql_none_parents) or parent_id in cache['comments'].keys()
+    if parent_id in cache['comments'].keys():
+        return True
+    else:
+        if parent_id in comment_ids:
+            return True
 
 
 def sql_replace_comment(comment_id: str, comment: str, subreddit: str, time: int, score: int):
     subreddit = check_subreddit(subreddit)
-    run_sql_insert_or_update((comment, subreddit, time, score, comment_id), insertion_type=InsertionType.REPLACE)
+    run_sql_insert_or_update((comment, subreddit, time, score, comment_id), insertion_type=InsertionType.UPDATE_CHILD)
 
 
 def sql_insert_no_parent(comment_id: str, comment: str, subreddit: int, time: int, score: int):
@@ -340,7 +348,7 @@ def main():
 
     logger.info(f"{timeFrame} Finishing...")
     logger.info(f"{timeFrame} Vacuum")
-    cursor.execute(f"{timeFrame} VACUUM")
+    cursor.execute(f"VACUUM")
     connection.commit()
     logger.info(f"{timeFrame} Closing")
     cursor.close()
