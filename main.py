@@ -149,6 +149,9 @@ else:
     UNITS = int(input("UNITS: "))
     DROPOUT = float(input("DROPOUT: "))
     SAVE_FREQ = input("Press Enter to save by epoch, or type a number to save by batch: ")
+    MIXED = bool(input("Enable mixed precision y/n: ").lower() in ["n", "no"])
+    if MIXED:
+        tf.keras.mixed_precision.set_global_policy('mixed_float16')
     if SAVE_FREQ == "\n" or SAVE_FREQ == "":
         SAVE_FREQ = 'epoch'
     else:
@@ -159,13 +162,15 @@ else:
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
-                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
+                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
+                           mixed=MIXED)
     elif MODEL_TYPE == FNetIntegration:
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
-                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE)
+                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
+                           mixed=MIXED)
     elif MODEL_TYPE == PreTrainedEmbeddingTransformerIntegration:
         matrix, dff = get_embedding_matrix(get_embedding_idx(EMBEDDING_FILE), tokenizer)
         print(f"You selected {D_MODEL} however a value of {dff} was used for D_MODEL because the embedding file was {dff} in size.")
@@ -173,14 +178,16 @@ else:
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            metadata=metadata,
-                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE, embedding_matrix=matrix)
+                           save_freq=SAVE_FREQ, batch_size=BATCH_SIZE, embedding_matrix=matrix,
+                           mixed=MIXED)
     elif MODEL_TYPE == PerformerIntegration:
         NUM_FEATURES = int(input("RANDOM_FEATURES: "))
         model = MODEL_TYPE(num_layers=NUM_LAYERS, units=UNITS, d_model=D_MODEL,
                            num_heads=NUM_HEADS, base_log_dir=LOG_DIR, dropout=DROPOUT,
                            max_len=MAX_LENGTH, tokenizer=tokenizer, name=MODEL_NAME,
                            save_freq=SAVE_FREQ, batch_size=BATCH_SIZE,
-                           num_features=NUM_FEATURES)
+                           num_features=NUM_FEATURES,
+                           mixed=MIXED)
     else:
         model = None
         quit(-1)
