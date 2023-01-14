@@ -85,6 +85,10 @@ DATASET_PATH = input("Please enter dataset path: ")
 PYTHON_LEGACY = True if "https" in DATASET_PATH else PYTHON_LEGACY
 MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`, `fnet`, `pretrained`, `rotary`]: ")
 
+MIXED = bool(input("Enable mixed precision y/n: ").lower() in ["n", "no"])
+if MIXED:
+    tf.keras.mixed_precision.set_global_policy('mixed_float16')
+
 if MODEL_TYPE.lower() == "performer":
     MODEL_TYPE = PerformerIntegration
 elif MODEL_TYPE.lower() == "transformer":
@@ -149,9 +153,6 @@ else:
     UNITS = int(input("UNITS: "))
     DROPOUT = float(input("DROPOUT: "))
     SAVE_FREQ = input("Press Enter to save by epoch, or type a number to save by batch: ")
-    MIXED = bool(input("Enable mixed precision y/n: ").lower() in ["n", "no"])
-    if MIXED:
-        tf.keras.mixed_precision.set_global_policy('mixed_float16')
     if SAVE_FREQ == "\n" or SAVE_FREQ == "":
         SAVE_FREQ = 'epoch'
     else:
@@ -209,5 +210,5 @@ callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_to
                                  wrapper_model=model))
 callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1, restore_best_weights=True))
 
-model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks, steps_per_epoch=MAX_SAMPLES // BATCH_SIZE)
+model.fit(dataset_train, validation_dataset=dataset_val, epochs=EPOCHS, callbacks=callbacks)
 model.model.summary()
