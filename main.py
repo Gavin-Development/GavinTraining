@@ -141,7 +141,11 @@ TOKENIZER_PATH = input("TOKENIZER_PATH: ")
 EPOCHS = int(input("EPOCHS: "))
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
-dataset_file_name = "Tokenizer-3"
+dataset_file_name = input("Please enter dataset file name: ")
+if not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-from.BIN")) or not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-to.BIN")):
+    print("Dataset files not found. Quitting")
+    print(f"Expected files: {os.path.join(DATASET_PATH, dataset_file_name+'-from.BIN')} and {os.path.join(DATASET_PATH, dataset_file_name+'-to.BIN')}")
+    quit(-1)
 if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
     model.metadata = metadata
@@ -203,7 +207,7 @@ callbacks = model.get_default_callbacks()
 callbacks.pop(1)
 callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
                                                    embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
-                                                   profile_batch=(100, 110), embeddings_freq=1))
+                                                   profile_batch=(100, 110), embeddings_freq=5))
 callbacks.pop(len(callbacks) - 1)
 callbacks.append(PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
                                  max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
