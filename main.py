@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import glob
 import numpy as np
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
@@ -83,6 +84,15 @@ CPP_LEGACY = False
 
 DATASET_PATH = input("Please enter dataset path: ")
 PYTHON_LEGACY = True if "https" in DATASET_PATH else PYTHON_LEGACY
+if not PYTHON_LEGACY:
+    print("Files in dataset path:")
+    files = glob.glob(os.path.join(DATASET_PATH, "*.BIN"))
+    files = list(set([os.path.basename(file).split('.')[0].replace('-from', '').replace('-to', '') for file in files]))  # Quick and dirty
+    for i, file in enumerate(files):
+        print(f"{i+1}: {file}")
+dataset_file_name = input("Please enter dataset file name: ")
+
+
 MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`, `fnet`, `pretrained`, `rotary`]: ")
 
 MIXED = bool(input("Enable mixed precision y/n: ").lower() in ["n", "no"])
@@ -141,7 +151,7 @@ TOKENIZER_PATH = input("TOKENIZER_PATH: ")
 EPOCHS = int(input("EPOCHS: "))
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
-dataset_file_name = input("Please enter dataset file name: ")
+
 if not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-from.BIN")) or not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-to.BIN")):
     print("Dataset files not found. Quitting")
     print(f"Expected files: {os.path.join(DATASET_PATH, dataset_file_name+'-from.BIN')} and {os.path.join(DATASET_PATH, dataset_file_name+'-to.BIN')}")
