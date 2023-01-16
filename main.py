@@ -152,7 +152,7 @@ EPOCHS = int(input("EPOCHS: "))
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
 
-if not PYTHON_LEGACY and not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-from.BIN")) or not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-to.BIN")):
+if (not PYTHON_LEGACY) and not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-from.BIN")) or not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-to.BIN")):
     print("Dataset files not found. Quitting")
     print(f"Expected files: {os.path.join(DATASET_PATH, dataset_file_name+'-from.BIN')} and {os.path.join(DATASET_PATH, dataset_file_name+'-to.BIN')}")
     quit(-1)
