@@ -93,6 +93,11 @@ if not PYTHON_LEGACY:
 dataset_file_name = input("Please enter dataset file name: ")
 
 
+if (not PYTHON_LEGACY) and (not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-from.BIN")) or not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-to.BIN"))):
+    print("Dataset files not found. Quitting")
+    print(f"Expected files: {os.path.join(DATASET_PATH, dataset_file_name+'-from.BIN')} and {os.path.join(DATASET_PATH, dataset_file_name+'-to.BIN')}")
+    quit(-1)
+
 MODEL_TYPE = input("Please enter a Model Type [`performer`, `transformer`, `fnet`, `pretrained`, `rotary`]: ")
 
 MIXED = bool(input("Enable mixed precision y/n: ").lower() in ["n", "no"])
@@ -152,10 +157,6 @@ EPOCHS = int(input("EPOCHS: "))
 tokenizer = tfds.deprecated.text.SubwordTextEncoder.load_from_file(TOKENIZER_PATH)
 metadata = {'MAX_SAMPLES': MAX_SAMPLES, 'BATCH_SIZE': BATCH_SIZE, 'BUFFER_SIZE': BUFFER_SIZE}
 
-if (not PYTHON_LEGACY) and not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-from.BIN")) or not os.path.exists(os.path.join(DATASET_PATH, dataset_file_name+"-to.BIN")):
-    print("Dataset files not found. Quitting")
-    print(f"Expected files: {os.path.join(DATASET_PATH, dataset_file_name+'-from.BIN')} and {os.path.join(DATASET_PATH, dataset_file_name+'-to.BIN')}")
-    quit(-1)
 if os.path.exists(os.path.join(LOG_DIR, MODEL_NAME)):
     model = MODEL_TYPE.load_model(LOG_DIR, MODEL_NAME)
     model.metadata = metadata
