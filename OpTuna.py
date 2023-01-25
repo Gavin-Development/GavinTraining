@@ -13,7 +13,7 @@ os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration, FNetIntegration
 from GavinBackend.GavinCore.datasets import DatasetAPICreator
-from GavinBackend.GavinCore.load_data import load_tokenized_data
+from GavinBackend.DataParsers.load_data import load_tokenized_data
 from GavinBackend.GavinCore.metrics import Perplexity
 
 physical_devices = tf.config.list_physical_devices('GPU')
