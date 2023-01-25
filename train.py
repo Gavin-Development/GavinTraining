@@ -156,7 +156,7 @@ def _load_previous_if_exists(model_type: str, log_dir: str,
 
 def _freq_type(arg: typing.Union[str, int]) -> typing.Union[str, int]:
     if type(arg) in [str, int]:
-        return arg
+        return arg if not arg.isnumeric() else int(arg)
 
 
 def main():
