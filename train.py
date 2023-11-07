@@ -9,7 +9,7 @@ os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 
 from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration, FNetIntegration, PreTrainedEmbeddingTransformerIntegration, \
-    RotaryTransformerIntegration
+    RotaryTransformerIntegration, PerformerReluIntegration
 from GavinBackend.GavinCore.datasets import DatasetAPICreator, DatasetDirectFromFileAPICreator
 from GavinBackend.GavinCore.load_data import load_tokenized_data
 from GavinBackend.GavinCore.callbacks import PredictCallback
@@ -17,6 +17,7 @@ from GavinBackend.GavinCore.callbacks import PredictCallback
 _MODEL_TYPES = {
     'transformer': TransformerIntegration,
     'performer': PerformerIntegration,
+    'performer_relu': PerformerReluIntegration,
     'fnet': FNetIntegration,
     'rotary_transformer': RotaryTransformerIntegration,
     'pretrained_embedding_transformer': PreTrainedEmbeddingTransformerIntegration
@@ -116,6 +117,7 @@ def _validate_kwargs(kwargs: typing.Dict, model_type: str):
     must_have_keys = ['num_layers', 'units', 'd_model', 'num_heads', 'base_log_dir', 'dropout',
                       'max_len', 'tokenizer', 'name', 'save_freq', 'batch_size', 'mixed', 'metadata']
     _unique_keys = {'performer': ['num_features'],
+                    'performer_relu': ['num_features'],
                     'pretrained_embedding_transformer': ['embedding_matrix']}
     for key in must_have_keys:
         if key not in kwargs:
@@ -210,7 +212,7 @@ def main():
         print(f"You selected {args.d_model} however a value of {d_model} was used for D_MODEL because the embedding file was {d_model} in size.")
         model_kwargs['embedding_matrix'] = matrix
         model_kwargs['d_model'] = d_model
-    elif args.model == 'performer':
+    elif args.model == 'performer' or args.model == 'performer_relu':
         model_kwargs['num_features'] = args.features
     train_model(args.model, model_kwargs, max_samples=args.max_samples, dataset_path=args.dataset_path, dataset_name=args.dataset_name,
                 buffer_size=args.buffer_size, epochs=args.epochs, streaming=args.streaming, python_legacy=args.python_legacy, cpp_legacy=args.cpp_legacy,
