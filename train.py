@@ -270,11 +270,12 @@ def train_model(model_type: typing.AnyStr, model_kwargs: typing.Dict, max_sample
 
     callbacks = model.get_default_callbacks()
     callbacks.pop(1)
-    callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
-                                                       embeddings_metadata=os.path.join(model.log_dir, "metadata.tsv"),
-                                                       profile_batch=(100, 110), embeddings_freq=5))
-    callbacks.pop(2)
-    callbacks.insert(2, PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
+    # callbacks.insert(1, tf.keras.callbacks.TensorBoard(log_dir=model.log_dir, update_freq=model.save_freq,
+    #                                                    embeddings_metadata=os.path.join(model.log_dir,
+    #                                                                                     "metadata.tsv"),
+    #                                                    embeddings_freq=5))
+    callbacks.pop(1)
+    callbacks.insert(1, PredictCallback(tokenizer=tokenizer, start_token=model.start_token, end_token=model.end_token,
                                         max_length=model.max_len, log_dir=model.log_dir, update_freq=model.save_freq,
                                         wrapper_model=model))
 
