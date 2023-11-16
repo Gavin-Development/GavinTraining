@@ -7,9 +7,10 @@ import argparse as ap
 
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
-
-from GavinBackend.GavinCore.models import TransformerIntegration, tf, tfds, PerformerIntegration, FNetIntegration, PreTrainedEmbeddingTransformerIntegration, \
-    RotaryTransformerIntegration, PerformerReluIntegration
+from GavinBackend.GavinCore.utils import tf
+from GavinBackend.GavinCore.models import (TransformerIntegration, tfds, PerformerIntegration, FNetIntegration,
+                                           PreTrainedEmbeddingTransformerIntegration, RotaryTransformerIntegration,
+                                           PerformerReluIntegration)
 from GavinBackend.GavinCore.datasets import DatasetAPICreator, DatasetDirectFromFileAPICreator
 from GavinBackend.GavinCore.load_data import load_tokenized_data
 from GavinBackend.GavinCore.callbacks import PredictCallback
